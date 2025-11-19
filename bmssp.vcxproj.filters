@@ -16,16 +16,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
-    <None Include="CppProperties.json" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\bmssp.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\dijsktra.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\estruturaD.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\geraGrafosTestes.cpp">
@@ -34,18 +27,24 @@
     <ClCompile Include="src\helpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\NewFile.cpp">
+    <ClCompile Include="src\solver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\solver.cpp">
+    <ClCompile Include="src\bmssp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\estruturaD.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\NewFile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\estruturaD.h">
+    <ClInclude Include="lib\json.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="lib\json.hpp">
+    <ClInclude Include="src\estruturaD.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

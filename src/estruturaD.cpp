@@ -1,10 +1,10 @@
-#include "src/estruturaD.h"
+#include "estruturaD.h"
 #include <algorithm>
 
 D::D(size_t M, double B) : tamLoteM(M), limiteSuperiorB(B) {
 	blocosD_1.push_back(Bloco());
 
-	auto& i = blocosD_1.begin();
+	const auto& i = blocosD_1.begin();
 	limites[B] = i;
 }
 
@@ -16,7 +16,7 @@ void D::insert(int vertice, double distancia) {
 		else return;
 	}
 
-	auto& iLimites = limites.lower_bound(distancia);
+	const auto& iLimites = limites.lower_bound(distancia);
 	auto& iBloco = iLimites->second;
 	iBloco->push_back({ distancia, vertice });
 
@@ -156,7 +156,7 @@ void D::removeChave(int vertice) {
 	auto& iLimites = limites.lower_bound(distancia);
 	auto& iBloco = iLimites ->second;
 
-	for (auto& valor = iBloco->begin(); valor != iBloco->end(); valor++) {
+	for (auto valor = iBloco->begin(); valor != iBloco->end(); valor++) {
 		if (valor->second == vertice) {
 			iBloco->erase(valor);
 			break;
@@ -174,7 +174,7 @@ void D::removeChave(int vertice) {
 void D::dividir(std::map<double, std::list<Bloco>::iterator>::iterator &iLimites) {
 	double limiteAntigo = iLimites->first;
 	auto& iBloco = iLimites->second;
-	std::vector<ParDistVertice> aux(*iBloco);
+	std::vector<ParDistVertice> aux(iBloco->begin(), iBloco->end());
 
 	std::nth_element(aux.begin(), aux.begin() + tamLoteM / 2, aux.end());
 	double valorMediana = aux[tamLoteM / 2].first;

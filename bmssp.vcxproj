@@ -102,6 +102,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -124,7 +125,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include=".gitignore" />
-    <None Include="CppProperties.json" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\bmssp.cpp" />

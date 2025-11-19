@@ -1,6 +1,7 @@
 #include <iostream>
 #include "./dijsktra.cpp"
 #include "./helpers.cpp"
+
 int main() {
     int tamanho = 3;
     double densidade = 0.7;

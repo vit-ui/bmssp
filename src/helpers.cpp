@@ -77,9 +77,9 @@ void salvaGrafo(int tamanho, double densidade, const std::vector<std::vector<std
     novoGrafo["parametros"]["densidade"] = densidade;
     novoGrafo["grafo"] = grafo;
 
-    auto solução = bellmanFord(grafo);
-    novoGrafo["solucao"]["distancias"] = solução.first;     // dt
-    novoGrafo["solucao"]["predecessores"] = solução.second; // rot
+    auto solucao = bellmanFord(grafo);
+    novoGrafo["solucao"]["distancias"] = solucao.first;     // dt
+    novoGrafo["solucao"]["predecessores"] = solucao.second; // rot
 
     // atualizando lista de grafos
     Grafos.push_back(novoGrafo);
@@ -169,7 +169,7 @@ void imprimeArquivo(const std::string &caminhoArquivo){
         const auto &solucao = teste["solucao"];
         std::cout << "Solucao:" << std::endl;
 
-        // Verifica se a solução está vazia (placeholder)
+        // Verifica se a solucao está vazia (placeholder)
         if (solucao["distancias"].empty()) 
             std::cout << "(Solucao pendente ou nao calculada)" << std::endl;
         else {
@@ -180,7 +180,7 @@ void imprimeArquivo(const std::string &caminhoArquivo){
             const auto &distancias = solucao["distancias"];
             const auto &predecessores = solucao["predecessores"];
 
-            // Assumimos que o tamanho dos arrays de solução é o mesmo
+            // Assumimos que o tamanho dos arrays de solucao é o mesmo
             for (size_t i = 0; i < distancias.size(); ++i){
                 std::cout << "   " << i << "    |     ";
 
