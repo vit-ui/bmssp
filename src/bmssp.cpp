@@ -43,7 +43,7 @@ namespace CaminhoMinimo {
                 {
                     size_t verticeDestinoV = aresta.first; // v
                     double pesoUV = aresta.second; // peso u -> v
-                    double novoCusto = distD[verticeU] + pesoUV; // distD[u] + peso[u,v]
+                    double novoCusto = limpaRuido(distD[verticeU] + pesoUV); // distD[u] + peso[u,v]
 
                     //// Verifica se é MELHOR ou se é um EMPATE SEGURO
                     //bool melhorou = novoCusto < distD[verticeDestinoV];
@@ -76,7 +76,8 @@ namespace CaminhoMinimo {
                             }
                             // já que tem que pertencer a W:
                             bool melhorou = novoCusto < distD[verticeDestinoV];
-                            bool empateSeguro = (novoCusto == distD[verticeDestinoV]) && (florestaF[verticeDestinoV] == -1 || camada[verticeDestinoV] == i + 1);
+                            bool empateSeguro = (novoCusto == distD[verticeDestinoV]) && (florestaF[verticeDestinoV] == NULO || camada[verticeDestinoV] == i + 1);
+
                             if (melhorou || empateSeguro) {
                                 florestaF[verticeDestinoV] = verticeU;
                                 camada[verticeDestinoV] = i + 1;
@@ -181,7 +182,7 @@ namespace CaminhoMinimo {
                 size_t vizinho = parVizinho.first; // vizinho é v - verticeAtualU é u
                 double pesoUV = parVizinho.second; // peso[u, v]
 
-                double novoCusto = distD[verticeAtualU] + pesoUV;
+                double novoCusto = limpaRuido(distD[verticeAtualU] + pesoUV);
                 if (novoCusto <= distD[vizinho] && novoCusto < limiteB) {
                     distD[vizinho] = novoCusto;
 
@@ -278,7 +279,7 @@ namespace CaminhoMinimo {
                     size_t vizinhoV = aresta.first; // v
                     double pesoUV = aresta.second; // peso u -> v
 
-                    double novoCusto = distD[verticeU] + pesoUV;
+                    double novoCusto = limpaRuido(distD[verticeU] + pesoUV);
 
                     if (novoCusto <= distD[vizinhoV]) {
                         distD[vizinhoV] = novoCusto;

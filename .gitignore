@@ -1,6 +1,7 @@
 .vscode/
 .vs/
 *.exe
+*.txt
 !src/geraGrafosTestes.exe
 *.json
 /src/NewFile.cpp

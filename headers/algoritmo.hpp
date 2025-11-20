@@ -10,6 +10,8 @@ namespace CaminhoMinimo {
 	using Grafo = std::vector<std::vector<std::pair<size_t, double>>>;
 	using FilaPrioridade = std::priority_queue<std::pair<double, size_t>, std::vector<std::pair<double, size_t>>, std::greater<std::pair<double, size_t>>>;
 
+	constexpr double PESOMAX = 100.0;
+
 	class Algoritmo {
 	public:
 		Algoritmo() : ptrGrafo(nullptr) {} // as variaveis são inicializadas em setGrafo já que elas dependem do tamanho do grafo.
@@ -23,12 +25,19 @@ namespace CaminhoMinimo {
 		static constexpr double INFINITO = std::numeric_limits<double>::infinity();
 		static constexpr size_t NULO = std::numeric_limits<size_t>::max();
 	private:
+		// Os algoritmos em si
+		std::vector<size_t> dijkstra(size_t origem);
+
+		std::pair<double, std::vector<size_t>> bmssp(int nivel, double limiteSuperiorGlobalB, std::vector<size_t> fronteiraS);
+
 		std::pair<std::vector<size_t>, std::vector<size_t>> findPivots(double limiteB, std::vector<size_t> fronteiraInicialS);
 		std::pair<double, std::vector<size_t>> baseCase(double limiteB, size_t pivoFonteS);
 
-		std::vector<size_t> dijkstra(size_t origem);
-		std::pair<double, std::vector<size_t>> bmssp(int nivel, double limiteSuperiorGlobalB, std::vector<size_t> fronteiraS);
-
+		// função que garante precisão quando fazemos operações com pontos flutuantes
+		static double limpaRuido(double valor) {
+			constexpr double PRECISAO = 1e9;
+			return std::round(valor * PRECISAO) / PRECISAO;
+		}
 	private:
 		const Grafo *ptrGrafo;
 		std::vector<double> distD;

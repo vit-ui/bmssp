@@ -1,6 +1,5 @@
 #include "../headers/algoritmo.hpp"
 #include "../headers/helpers.hpp"
-
 #include "../lib/json.hpp"
 
 #include <iostream>
@@ -8,12 +7,21 @@
 #include <vector>
 #include <string>
 
+// Estrutura para guardar informações sobre os erros encontrados
+struct InfoErro {
+    int idTeste;
+    int tamanhoGrafo;
+    size_t verticeDivergente;
+    double valorDijkstra;
+    double valorBMSSP;
+};
+
 int main() {
     // Parâmetros iniciais
     int tamanho = 3;   // Começando pequeno para testar
     int origem = 0;     // Vértice de partida
     double densidade = 0.5;
-    int quantidade = 10;
+    int quantidade = 100; // Numero de grafos criados e testados
 
     // a cada stepMudanca Grafos, o tamanho aumenta em stepTamanho
     int stepMudanca = 2;
@@ -28,34 +36,32 @@ int main() {
     std::ofstream cleaner(caminhoGrafo);
     cleaner.close();
 
+    // Vetor para acumular os erros
+    std::vector<InfoErro> errosEncontrados;
+
     std::cout << "========================================" << std::endl;
     std::cout << "       BENCHMARK: DIJKSTRA vs BMSSP     " << std::endl;
     std::cout << "========================================" << std::endl;
 
     for (int i = 0; i < quantidade; i++) {
-        // Aumenta o tamanho do grafo a cada iteração par
+        // Aumenta o tamanho do grafo a cada stepMudanca iterações
         if (i % stepMudanca == 0) tamanho += stepTamanho;
 
-        std::cout << "\n--- Teste " << i + 1 << " (Vertices: " << tamanho << ") ---" << std::endl;
+        std::cout << "\n--- Teste " << i << " (Vertices: " << tamanho << ") ---" << std::endl;
 
         // 1. GERAÇÃO DO GRAFO
-        // Gera em memória (vetor de vetores com peso double)
-        CaminhoMinimo::Grafo grafo = geraGrafo(tamanho, densidade);
+        auto grafo = geraGrafo(tamanho, densidade);
 
         // 2. REGISTRO (Opcional)
-        // Salva no arquivo para conferência futura
         salvaGrafo(tamanho, densidade, grafo, caminhoGrafo);
 
         // 3. CONFIGURAÇÃO
-        // Passa o ponteiro do grafo atual para a classe
         algos.setGrafo(grafo);
 
         // -------------------------------------------------
         // 4. EXECUÇÃO DO DIJKSTRA (Baseline)
         // -------------------------------------------------
         long long tempoDijkstra = algos.execDijkstra(origem);
-
-        // salva o resultado para comparar depois
         std::vector<double> resultadoDijkstra = algos.getDist();
 
         std::cout << "Tempo Dijkstra: " << tempoDijkstra << " micros" << std::endl;
@@ -64,8 +70,6 @@ int main() {
         // 5. EXECUÇÃO DO BMSSP (Algoritmo Novo)
         // -------------------------------------------------
         long long tempoBMSSP = algos.execBmssp(origem);
-
-        // Pega referência do resultado (leitura)
         const std::vector<double>& resultadoBMSSP = algos.getDist();
 
         std::cout << "Tempo BMSSP:    " << tempoBMSSP << " micros" << std::endl;
@@ -74,23 +78,29 @@ int main() {
         // 6. VALIDAÇÃO E COMPARAÇÃO
         // -------------------------------------------------
 
-        // Verifica se os tamanhos batem (segurança básica)
         if (resultadoDijkstra.size() != resultadoBMSSP.size()) {
             std::cout << "[ERRO CRITICO] Vetores de tamanhos diferentes!" << std::endl;
             continue;
         }
 
         bool iguais = true;
-        // Compara valor a valor (usando margem de erro pequena para double se necessário, 
-        // mas == costuma funcionar se a aritmética for determinística)
+        // Compara valor a valor (usando margem de erro pequena para double se necessário)
         for (size_t v = 0; v < resultadoDijkstra.size(); ++v) {
+            // Usando comparação com precisão de double
+            // Se quiser usar epsilon: std::abs(a - b) > 1e-9
+            // Se usar a limpeza de ruído na classe, == deve funcionar na maioria dos casos simples
             if (resultadoDijkstra[v] != resultadoBMSSP[v]) {
                 iguais = false;
-                // Imprime o primeiro erro encontrado para debug
+
+                // Imprime o erro na hora
                 std::cout << "[DIVERGENCIA] Vertice " << v
                     << " -> Dijk: " << resultadoDijkstra[v]
                     << " | BMSSP: " << resultadoBMSSP[v] << std::endl;
-                break;
+
+                // GUARDA O ERRO PARA O RELATÓRIO FINAL
+                errosEncontrados.push_back({ i, tamanho, v, resultadoDijkstra[v], resultadoBMSSP[v] });
+
+                break; // Para na primeira divergência encontrada neste grafo
             }
         }
 
@@ -125,37 +135,24 @@ int main() {
         }
     }
 
-    imprimeArquivo(caminhoGrafo);
+    // --- RELATÓRIO FINAL DE ERROS ---
+    std::cout << "\n\n========================================" << std::endl;
+    std::cout << "       RESUMO DAS DIVERGENCIAS          " << std::endl;
+    std::cout << "========================================" << std::endl;
+
+    if (errosEncontrados.empty()) {
+        std::cout << "PARABENS! Todos os " << quantidade << " testes passaram sem divergencias." << std::endl;
+    }
+    else {
+        std::cout << "Foram encontradas " << errosEncontrados.size() << " divergencias:\n" << std::endl;
+        for (const auto& erro : errosEncontrados) {
+            std::cout << "--- Teste " << erro.idTeste << " (N=" << erro.tamanhoGrafo << ") ---" << std::endl;
+            std::cout << "[DIVERGENCIA] Vertice " << erro.verticeDivergente
+                << " -> Dijk: " << erro.valorDijkstra
+                << " | BMSSP: " << erro.valorBMSSP << std::endl;
+            std::cout << "----------------------------------------" << std::endl;
+        }
+    }
+
+    //imprimeArquivo(caminhoGrafo);
 }
-// Main antigo
-//int main() {
-//    int tamanho = 3, origem = 0;
-//    double densidade = 0.7;
-//    std::string caminhoGrafo = "../grafos/grafos.txt";
-//
-//    CaminhoMinimo::Algoritmo algos;
-//    //// limpando o arquivo
-//    //std::ofstream cleaner(caminhoGrafo);
-//    //cleaner.close();
-//
-//    // construindo, salvando e testando os grafos
-//    for (int i = 0; i < 10; i++) {
-//        if (i % 2 == 0) tamanho++;
-//
-//        auto grafo = geraGrafo(tamanho, densidade);
-//        salvaGrafo(tamanho, densidade, grafo, caminhoGrafo); // Apenas para registro.
-//
-//        algos.setGrafo(grafo);
-//        long long tempoDijkstra = algos.execDijkstra(origem);
-//        std::vector<double> dist = algos.getDist();
-//
-//        std::cout << "DT: ";
-//        for (const auto& custo : dist) {
-//            if (custo == CaminhoMinimo::Algoritmo::INFINITO) std::cout << "INF ";
-//            else std::cout << custo << " ";
-//        }
-//        std::cout << "Tempo gasto: " << tempoDijkstra << "microsegundos";
-//
-//        std::cout << std::endl;
-//    }
-//}

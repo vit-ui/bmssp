@@ -1,5 +1,5 @@
-#pragma once
 #include "../headers/helpers.hpp"
+#include "../headers/algoritmo.hpp"
 
 #include "../lib/json.hpp"
 
@@ -63,7 +63,7 @@ CaminhoMinimo::Grafo geraGrafo(size_t tamanho, double densidade)
     static std::random_device semente;
     static std::mt19937 motor(semente());
     std::uniform_int_distribution<size_t> escolheVertice(0, tamanho - 1);
-    std::uniform_real_distribution<double> escolhePeso(1.0, 100.0);
+    std::uniform_real_distribution<double> escolhePeso(1.0, CaminhoMinimo::PESOMAX);
 
     CaminhoMinimo::Grafo grafo(tamanho);
 
