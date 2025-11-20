@@ -21,7 +21,7 @@ int main() {
     int tamanho = 3;   // Começando pequeno para testar
     int origem = 0;     // Vértice de partida
     double densidade = 0.5;
-    int quantidade = 100; // Numero de grafos criados e testados
+    int quantidade = 50; // Numero de grafos criados e testados
 
     // a cada stepMudanca Grafos, o tamanho aumenta em stepTamanho
     int stepMudanca = 5;
