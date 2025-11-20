@@ -41,12 +41,12 @@ void D::insert(size_t vertice, double distancia) {
     if (iBloco->size() > tamLoteM) dividir(iLimites);
 }
 
-// BATCH PREPEND: Insere lote urgente (CORRIGIDO: ORDENAÇÃO)
+// BATCH PREPEND: Insere lote urgente (CORRIGIDO: push_front e Loop Reverso)
 void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
     std::map<size_t, double> loteFiltrado;
     std::vector<size_t> paraRemoverDoStatus;
 
-    // 1. Filtra o melhor dentro do lote
+    // 1. Filtra o melhor dentro do lote (resolve duplicatas no input)
     for (auto& par : loteL) {
         double distancia = par.first;
         size_t vertice = par.second;
@@ -60,7 +60,7 @@ void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
         }
     }
 
-    // 2. Compara com status global e marca remoções (Sem apagar iterator)
+    // 2. Compara com status global e marca remoções
     auto it = loteFiltrado.begin();
     while (it != loteFiltrado.end()) {
         size_t vertice = it->first;
@@ -69,45 +69,65 @@ void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
         auto iStatus = status.find(vertice);
         if (iStatus != status.end()) {
             double distanciaAntiga = iStatus->second;
+            // Se o caminho novo for pior ou igual, descartamos do lote
             if (distancia >= distanciaAntiga) {
-                it = loteFiltrado.erase(it); // Remove do lote, é pior
+                it = loteFiltrado.erase(it);
                 continue;
             }
             else {
-                paraRemoverDoStatus.push_back(vertice); // Remove do D, é melhor
+                // Se o caminho novo for melhor, removemos o antigo da estrutura D
+                paraRemoverDoStatus.push_back(vertice);
             }
         }
         ++it;
     }
 
-    // Remove as versões antigas de D
+    // Remove as versões antigas de D (garante consistência)
     for (size_t v : paraRemoverDoStatus) {
         removeChave(v);
     }
 
-    // 3. Copia para vetor e ORDENA (Crucial para o PULL funcionar)
+    // 3. Copia para vetor e ORDENA (Fundamental para dividir em blocos corretos)
     std::vector<ParDistVertice> aux;
     aux.reserve(loteFiltrado.size());
     for (auto& par : loteFiltrado) {
         aux.push_back({ par.second, par.first });
-        status[par.first] = par.second; // Atualiza status
+        status[par.first] = par.second; // Atualiza status global
     }
-    std::sort(aux.begin(), aux.end()); // Ordena por distância
+    std::sort(aux.begin(), aux.end()); // Menores distâncias primeiro
 
-    // 4. Insere em D_0
+    // 4. Insere em D_0 (CORREÇÃO CRÍTICA AQUI)
+    // Usamos push_front para que este lote urgente seja processado antes dos antigos.
+
     if (aux.size() <= tamLoteM) {
         std::list<ParDistVertice> bloco;
+        // Copia o vetor para a lista
         for (const auto& p : aux) bloco.push_back(p);
-        blocosD_0.push_back(bloco); // Push Back mantém ordem temporal dos lotes
+
+        // Insere na FRENTE da lista D_0
+        blocosD_0.push_front(bloco);
     }
     else {
-        for (size_t i = 0; i < aux.size(); i += tamLoteM) {
+        // Se o lote é maior que M, quebramos em vários blocos.
+        // Como usamos push_front, precisamos inserir do ÚLTIMO bloco para o PRIMEIRO.
+        // Ex: [Bloco Menor, Bloco Médio, Bloco Maior]
+        // 1. Insere Bloco Maior -> D0: [Maior]
+        // 2. Insere Bloco Médio -> D0: [Médio, Maior]
+        // 3. Insere Bloco Menor -> D0: [Menor, Médio, Maior] (Ordem Correta!)
+
+        // Cálculo do índice de início do último bloco
+        size_t resto = aux.size() % tamLoteM;
+        size_t inicioUltimo = (resto == 0) ? (aux.size() - tamLoteM) : (aux.size() - resto);
+
+        // Iteramos de trás para frente
+        for (long long i = inicioUltimo; i >= 0; i -= tamLoteM) {
             std::list<ParDistVertice> bloco;
-            size_t fim = std::min(i + tamLoteM, aux.size());
-            for (size_t j = i; j < fim; j++) {
+            size_t fim = std::min((size_t)i + tamLoteM, aux.size());
+
+            for (size_t j = (size_t)i; j < fim; j++) {
                 bloco.push_back(aux[j]);
             }
-            blocosD_0.push_back(bloco);
+            blocosD_0.push_front(bloco);
         }
     }
 }

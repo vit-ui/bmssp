@@ -24,8 +24,8 @@ int main() {
     int quantidade = 100; // Numero de grafos criados e testados
 
     // a cada stepMudanca Grafos, o tamanho aumenta em stepTamanho
-    int stepMudanca = 2;
-    int stepTamanho = 1;
+    int stepMudanca = 5;
+    int stepTamanho = 2;
     std::string caminhoGrafo = "grafos.txt";;
 
     // Instancia o Solucionador
