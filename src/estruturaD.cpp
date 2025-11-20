@@ -1,4 +1,5 @@
-#include "estruturaD.h"
+#include "../headers/estruturaD.hpp"
+
 #include <algorithm>
 
 D::D(size_t M, double B) : tamLoteM(M), limiteSuperiorB(B) {
@@ -8,7 +9,7 @@ D::D(size_t M, double B) : tamLoteM(M), limiteSuperiorB(B) {
 	limites[B] = i;
 }
 
-void D::insert(int vertice, double distancia) {
+void D::insert(size_t vertice, double distancia) {
 	auto iStatus = status.find(vertice);
 
 	if (iStatus != status.end()) {
@@ -16,8 +17,8 @@ void D::insert(int vertice, double distancia) {
 		else return;
 	}
 
-	const auto& iLimites = limites.lower_bound(distancia);
-	auto& iBloco = iLimites->second;
+	auto iLimites = limites.lower_bound(distancia);
+	auto iBloco = iLimites->second;
 	iBloco->push_back({ distancia, vertice });
 
 	status[vertice] = distancia;
@@ -26,11 +27,12 @@ void D::insert(int vertice, double distancia) {
 }
 
 void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
-	std::map<int, double> loteFiltrado;
+	std::map<size_t, double> loteFiltrado;
+	std::vector<size_t> paraRemover;
 
 	for (auto& par : loteL) {
 		double distancia = par.first;
-		int vertice = par.second;
+		size_t vertice = par.second;
 
 		auto iLote = loteFiltrado.find(vertice);
 		if (iLote == loteFiltrado.end()) {
@@ -43,21 +45,23 @@ void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
 
 	for (auto& par : loteFiltrado) {
 		double distancia = par.second;
-		int vertice = par.first;
+		size_t vertice = par.first;
 
 		auto iStatus = status.find(vertice);
 		if (iStatus != status.end()) {
 			double distanciaAntiga = iStatus->second;
 
-			if (distancia >= distanciaAntiga) loteFiltrado.erase(vertice);
+			if (distancia >= distanciaAntiga) paraRemover.push_back(vertice);
 		}
 	}
+
+	for (size_t v : paraRemover) loteFiltrado.erase(v);
 
 	if (loteFiltrado.size() <= tamLoteM) {
 		std::list<ParDistVertice> bloco;
 		for (auto& par : loteFiltrado) {
 			double distancia = par.second;
-			int vertice = par.first;
+			size_t vertice = par.first;
 
 			bloco.push_back({ distancia, vertice });
 		}
@@ -67,7 +71,7 @@ void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
 		std::vector<ParDistVertice> aux;
 		for (auto& par : loteFiltrado) {
 			double distancia = par.second;
-			int vertice = par.first;
+			size_t vertice = par.first;
 
 			aux.push_back({ distancia, vertice });
 		}
@@ -78,7 +82,7 @@ void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
 
 			for (size_t j = i; j < fim; j++) {
 				double distancia = aux[j].first;
-				int vertice = aux[j].second;
+				size_t vertice = aux[j].second;
 
 				bloco.push_back({ distancia, vertice });
 			}
@@ -88,7 +92,7 @@ void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
 
 	for (auto& par : loteFiltrado) {
 		double distancia = par.second;
-		int vertice = par.first;
+		size_t vertice = par.first;
 
 		status[vertice] = distancia;
 	}
@@ -126,7 +130,7 @@ std::pair<double, std::vector<ParDistVertice>> D::pull(){
 
 		blocosD_1.push_back(Bloco());
 
-		auto& i = blocosD_1.begin();
+		const auto& i = blocosD_1.begin();
 		limites[limiteSuperiorB] = i;
 
 		return std::make_pair(limiteSuperiorB, candidatosTotais);
@@ -148,12 +152,12 @@ std::pair<double, std::vector<ParDistVertice>> D::pull(){
 	}
 }
 
-void D::removeChave(int vertice) {
+void D::removeChave(size_t vertice) {
 	auto iStatus = status.find(vertice);
 	if (iStatus == status.end()) return;
 
 	double distancia = iStatus->second;
-	auto& iLimites = limites.lower_bound(distancia);
+	const auto& iLimites = limites.lower_bound(distancia);
 	auto& iBloco = iLimites ->second;
 
 	for (auto valor = iBloco->begin(); valor != iBloco->end(); valor++) {
@@ -165,15 +169,16 @@ void D::removeChave(int vertice) {
 
 	status.erase(iStatus);
 
-	if(iBloco->empty()) {
-		limites.erase(iLimites);
-		blocosD_1.erase(iBloco);
+	// Só apaga o bloco se estiver vazio E NÃO FOR o bloco sentinela (o último)
+	if (iBloco->empty() && iLimites->first != limiteSuperiorB) {
+		blocosD_1.erase(iBloco); // Apaga da lista
+		limites.erase(iLimites); // Apaga do mapa
 	}
 }
 
 void D::dividir(std::map<double, std::list<Bloco>::iterator>::iterator &iLimites) {
 	double limiteAntigo = iLimites->first;
-	auto& iBloco = iLimites->second;
+	auto iBloco = iLimites->second;
 	std::vector<ParDistVertice> aux(iBloco->begin(), iBloco->end());
 
 	std::nth_element(aux.begin(), aux.begin() + tamLoteM / 2, aux.end());

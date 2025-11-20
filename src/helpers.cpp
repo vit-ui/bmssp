@@ -1,34 +1,80 @@
 #pragma once
-#include <vector>
-#include <utility>
-#include <random>
-#include <climits>
-#include <fstream>
-#include <sstream>         // Para std::stringstream
-#include <iomanip>         // Para std::setprecision e std::fixed
-#include "../lib/json.hpp" // lib nlohmann/json
-#include "./solver.cpp"
+#include "../headers/helpers.hpp"
 
+#include "../lib/json.hpp"
+
+#include <vector>
+#include <random>
+#include <fstream>
+#include <iostream>
+
+/**
+ * SOLVER (ORÁCULO)
+ * * Roda o Algoritmo de Bellman-Ford para encontrar a "resposta correta".
+ * Este algoritmo é mais lento (O(N*E)), mas sua lógica simples
+ * serve como uma "prova" para validar seu Dijkstra otimizado.
+ */
+std::pair<std::vector<double>, std::vector<size_t>> bellmanFord(const CaminhoMinimo::Grafo& grafo) {
+
+    // (Pode ser 'int' ou 'size_t', desde que seja consistente)
+    size_t tamanho = grafo.size();
+
+    // 1. Inicialização (Idêntica ao Dijkstra)
+    std::vector<double> minDistancia(tamanho, std::numeric_limits<double>::infinity());
+    std::vector<size_t> predecessores(tamanho, std::numeric_limits<size_t>::max()); // -1 = nulo
+    minDistancia[0] = 0; // Origem
+
+    // Loop principal (roda N-1 vezes)
+    for (size_t i = 1; i < tamanho; ++i) {
+        // u = vértice de origem da aresta
+        for (size_t u = 0; u < tamanho; ++u) {
+
+            // v = vértice de destino da aresta
+            for (const auto& parVizinho : grafo[u]) {
+                size_t v = parVizinho.first;
+                double peso = parVizinho.second;
+
+                // Lógica de Relaxamento (O coração do algoritmo)
+
+                // Se a origem 'u' ainda é inalcançável, 
+                // não podemos relaxar a partir dela.
+                if (minDistancia[u] == std::numeric_limits<double>::infinity()) continue;
+
+                // Verificação de overflow (igual ao Dijkstra)
+                if (minDistancia[u] > std::numeric_limits<double>::infinity() - peso) continue;
+
+                double distanciaNova = minDistancia[u] + peso;
+
+                if (distanciaNova < minDistancia[v]) {
+                    minDistancia[v] = distanciaNova;
+                    predecessores[v] = u;
+                }
+            }
+        }
+    }
+    // 3. Retorna o resultado (o "gabarito")
+    return std::make_pair(minDistancia, predecessores);
+}
 
 // Função que gera um grafo para teste usando lista de adjacencia.
-std::vector<std::vector<std::pair<int, int>>> geraGrafo(int tamanho, double densidade)
+CaminhoMinimo::Grafo geraGrafo(size_t tamanho, double densidade)
 {
     // Criando um gerador de numeros aleatórios usando static para persistir durante várias calls a função
     static std::random_device semente;
     static std::mt19937 motor(semente());
-    std::uniform_int_distribution<int> escolheVertice(0, tamanho - 1);
-    std::uniform_int_distribution<int> escolhePeso(1, 100);
+    std::uniform_int_distribution<size_t> escolheVertice(0, tamanho - 1);
+    std::uniform_real_distribution<double> escolhePeso(1.0, 100.0);
 
-    std::vector<std::vector<std::pair<int, int>>> grafo(tamanho);
+    CaminhoMinimo::Grafo grafo(tamanho);
 
     // Calculando o número de arestas do grafo com base na densidade
-    size_t maxArestas = densidade * tamanho * (tamanho - 1);
+    size_t maxArestas = static_cast<size_t>(densidade * tamanho * (tamanho - 1));
 
     // Populando o grafo com pesos e direções aleatórias
-    for (int i = 0; i < maxArestas; i++){
-        int origem = escolheVertice(motor);
-        int chegada = escolheVertice(motor);
-        int peso = escolhePeso(motor);
+    for (size_t i = 0; i < maxArestas; i++){
+        size_t origem = escolheVertice(motor);
+        size_t chegada = escolheVertice(motor);
+        double peso = escolhePeso(motor);
 
         if (origem == chegada) continue;
 
@@ -51,18 +97,18 @@ std::vector<std::vector<std::pair<int, int>>> geraGrafo(int tamanho, double dens
 }
 
 // Função que coloca grafos em formato json em um arquivo txt
-void salvaGrafo(int tamanho, double densidade, const std::vector<std::vector<std::pair<int, int>>> &grafo)
+void salvaGrafo(size_t tamanho, double densidade, const CaminhoMinimo::Grafo &grafo, std::string path)
 {
-    // Preparando variáveis para a operação no arquivo
-    std::string caminhoGrafo = "../grafos/grafos.txt";
     nlohmann::json Grafos;
 
     // colocando os grafos existentes na memoria para atualizar o arquivo
-    std::ifstream arquivoGrafosLeitura(caminhoGrafo);
+    std::ifstream arquivoGrafosLeitura(path);
+    if (!arquivoGrafosLeitura.is_open()) return;
+
     try{
         Grafos = nlohmann::json::parse(arquivoGrafosLeitura);
     }
-    catch (const std::exception &e){
+    catch (const std::exception&){
         Grafos = nlohmann::json::array();
     }
     arquivoGrafosLeitura.close();
@@ -85,35 +131,9 @@ void salvaGrafo(int tamanho, double densidade, const std::vector<std::vector<std
     Grafos.push_back(novoGrafo);
 
     // Colocando lista atualizada no arquivo
-    std::ofstream arquivoGrafosEscrita(caminhoGrafo);
+    std::ofstream arquivoGrafosEscrita(path);
     arquivoGrafosEscrita << Grafos.dump(4);
 }
-
-// minDist e vizinhos não são mais utilizadas.
-int minDist(const std::vector<int> &minDistancia, const std::vector<bool> &foiFechado){
-    int indiceVerticeMinimo = -1;
-    int distanciaMinimaAtual = INFINITO;
-
-    for (int i = 0; i < minDistancia.size(); i++){
-        if (!foiFechado[i] && minDistancia[i] < distanciaMinimaAtual){
-            distanciaMinimaAtual = minDistancia[i];
-            indiceVerticeMinimo = i;
-        }
-    }
-    return indiceVerticeMinimo;
-}
-
-std::vector<int> vizinhos(const std::vector<std::vector<int>> &grafo, const std::vector<bool> &foiFechado, int verticeAtual){
-    std::vector<int> vizinhos;
-    for (int i = 0; i < grafo.size(); i++){
-        if (!foiFechado[i] && grafo[verticeAtual][i] != INFINITO)
-            vizinhos.emplace_back(i);
-    }
-    return vizinhos;
-}
-
-// Apelido para a biblioteca JSON
-using json = nlohmann::json;
 
 void imprimeArquivo(const std::string &caminhoArquivo){
     // 1. Abre o arquivo para leitura
@@ -124,15 +144,15 @@ void imprimeArquivo(const std::string &caminhoArquivo){
     }
 
     // 2. Analisa (Parse) o JSON
-    json listaDeTestes;
+    nlohmann::json listaDeTestes;
     try {
-        listaDeTestes = json::parse(arquivoEntrada);
+        listaDeTestes = nlohmann::json::parse(arquivoEntrada);
         if (!listaDeTestes.is_array()){
             std::cerr << "ERRO: O JSON nao e um array." << std::endl;
             return;
         }
     }
-    catch (json::parse_error &e){
+    catch (nlohmann::json::parse_error &e){
         std::cerr << "ERRO: Falha ao analisar o JSON. " << e.what() << std::endl;
         return;
     }
@@ -183,22 +203,37 @@ void imprimeArquivo(const std::string &caminhoArquivo){
             // Assumimos que o tamanho dos arrays de solucao é o mesmo
             for (size_t i = 0; i < distancias.size(); ++i){
                 std::cout << "   " << i << "    |     ";
-
-                // Tenta pegar o valor 'int' da distância
-                // (Usando .get<int>() para converter do JSON)
-                int dist = distancias[i].get<int>();
-
-                if (dist == INFINITO) std::cout << "INF";
-                else std::cout << dist;
+                
+                // CÓDIGO CORRIGIDO
+                if (distancias[i].is_null()) {
+                    std::cout << "INF";
+                }
+                else {
+                    std::cout << distancias[i].get<double>(); // Use double, pois suas distâncias são double!
+                }
 
                 std::cout << "     |      ";
 
-                // Tenta pegar o valor 'int' do predecessor
-                std::cout << predecessores[i].get<int>();
+                // Verifica se é nulo no JSON (caso não tenha sido salvo ou seja inválido)
+                if (predecessores[i].is_null()) {
+                    std::cout << "-1";
+                }
+                else {
+                    // Usa size_t pois é o tipo que você definiu na classe/solver
+                    size_t pred = predecessores[i].get<size_t>();
 
+                    // Verifica se é o valor Sentinela (o maior size_t possível)
+                    if (pred == std::numeric_limits<size_t>::max()) {
+                        std::cout << "NULO";
+                    }
+                    else {
+                        std::cout << pred;
+                    }
+                }
                 std::cout << std::endl;
             }
         }
         std::cout << "======================================" << std::endl << std::endl;
     }
 }
+

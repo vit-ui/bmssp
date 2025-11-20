@@ -21,13 +21,10 @@
     <ClCompile Include="src\dijsktra.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\geraGrafosTestes.cpp">
+    <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\helpers.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\solver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\bmssp.cpp">
@@ -36,7 +33,7 @@
     <ClCompile Include="src\estruturaD.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\NewFile.cpp">
+    <ClCompile Include="src\algoritmo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -44,7 +41,13 @@
     <ClInclude Include="lib\json.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\estruturaD.h">
+    <ClInclude Include="headers\estruturaD.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\algoritmo.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\helpers.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

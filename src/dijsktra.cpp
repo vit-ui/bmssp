@@ -1,43 +1,37 @@
+#include "../headers/algoritmo.hpp"
+
 #include <vector>
-#include <queue>
-#include <limits>
 #include <algorithm>
-#include <utility>
-#include <iostream>
-#include "./helpers.cpp"
 
-using Grafo = std::vector<std::vector<std::pair<int, int>>>;
+namespace CaminhoMinimo {
+    std::vector<size_t> Algoritmo::dijkstra(size_t origem) {
+        // a distancia é salva diretamente em distD.
+        std::vector<size_t> predecessores(tamGrafo, NULO); //rot
 
-std::pair<std::vector<int>, std::vector<int>> dijkstra(const Grafo& grafo){
-    int tamanho = grafo.size();
+        FilaPrioridade verticesParaProcessar;
+        verticesParaProcessar.push({ 0.0, origem });
 
-    std::vector<int> minDistancia(tamanho, INFINITO); //dt
-    std::vector<int> predecessores(tamanho, -1); //rot
+        while (!verticesParaProcessar.empty()) {
+            auto parAtual = verticesParaProcessar.top();
+            verticesParaProcessar.pop();
 
-    std::priority_queue<std::pair<int, int>, std::vector<std::pair<int, int>>, std::greater<std::pair<int, int>>> verticesParaProcessar;
-    minDistancia[0] = 0;
-    verticesParaProcessar.push({0,0});
+            double distancia = parAtual.first;
+            size_t verticeAtual = parAtual.second;
+            if (distancia > distD[verticeAtual]) continue;
 
-    while(!verticesParaProcessar.empty()){
-        auto parAtual = verticesParaProcessar.top();
-        verticesParaProcessar.pop();
+            for (const auto& parVizinho : ptrGrafo->at(verticeAtual)) {
+                size_t vizinho = parVizinho.first;
+                double peso = parVizinho.second;
 
-        int distancia = parAtual.first;
-        int verticeAtual = parAtual.second;
-        if (distancia > minDistancia[verticeAtual]) continue;
-
-        for(const auto& parVizinho : grafo[verticeAtual]){
-            int vizinho = parVizinho.first;
-            int peso = parVizinho.second;
-
-            // linha 14 era redundante. Pulei direto para 15.
-            int distanciaNova = minDistancia[verticeAtual] + peso;
-            if(distanciaNova < minDistancia[vizinho]){
-                minDistancia[vizinho] = distanciaNova;
-                predecessores[vizinho] = verticeAtual;
-                verticesParaProcessar.push({distanciaNova, vizinho});
+                // linha 14 era redundante. Pulei direto para 15.
+                double distanciaNova = distD[verticeAtual] + peso;
+                if (distanciaNova < distD[vizinho]) {
+                    distD[vizinho] = distanciaNova;
+                    predecessores[vizinho] = verticeAtual;
+                    verticesParaProcessar.push({ distanciaNova, vizinho });
+                }
             }
         }
+        return predecessores;
     }
-    return std::make_pair(minDistancia, predecessores);
 }

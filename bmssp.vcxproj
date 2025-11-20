@@ -127,17 +127,18 @@
     <None Include=".gitignore" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\algoritmo.cpp" />
     <ClCompile Include="src\bmssp.cpp" />
     <ClCompile Include="src\dijsktra.cpp" />
     <ClCompile Include="src\estruturaD.cpp" />
-    <ClCompile Include="src\geraGrafosTestes.cpp" />
+    <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\helpers.cpp" />
-    <ClCompile Include="src\NewFile.cpp" />
-    <ClCompile Include="src\solver.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="headers\helpers.hpp" />
     <ClInclude Include="lib\json.hpp" />
-    <ClInclude Include="src\estruturaD.h" />
+    <ClInclude Include="headers\algoritmo.hpp" />
+    <ClInclude Include="headers\estruturaD.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
