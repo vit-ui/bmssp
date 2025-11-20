@@ -12,6 +12,12 @@ namespace CaminhoMinimo {
 
 	constexpr double PESOMAX = 100.0;
 
+	// função que garante precisão quando fazemos operações com pontos flutuantes
+	static double limpaRuido(double valor) {
+		constexpr double PRECISAO = 1e9;
+		return std::round(valor * PRECISAO) / PRECISAO;
+	}
+
 	class Algoritmo {
 	public:
 		Algoritmo() : ptrGrafo(nullptr) {} // as variaveis são inicializadas em setGrafo já que elas dependem do tamanho do grafo.
@@ -33,11 +39,6 @@ namespace CaminhoMinimo {
 		std::pair<std::vector<size_t>, std::vector<size_t>> findPivots(double limiteB, std::vector<size_t> fronteiraInicialS);
 		std::pair<double, std::vector<size_t>> baseCase(double limiteB, size_t pivoFonteS);
 
-		// função que garante precisão quando fazemos operações com pontos flutuantes
-		static double limpaRuido(double valor) {
-			constexpr double PRECISAO = 1e9;
-			return std::round(valor * PRECISAO) / PRECISAO;
-		}
 	private:
 		const Grafo *ptrGrafo;
 		std::vector<double> distD;

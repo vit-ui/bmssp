@@ -74,7 +74,7 @@ CaminhoMinimo::Grafo geraGrafo(size_t tamanho, double densidade)
     for (size_t i = 0; i < maxArestas; i++){
         size_t origem = escolheVertice(motor);
         size_t chegada = escolheVertice(motor);
-        double peso = escolhePeso(motor);
+        double peso = CaminhoMinimo::limpaRuido(escolhePeso(motor));
 
         if (origem == chegada) continue;
 
