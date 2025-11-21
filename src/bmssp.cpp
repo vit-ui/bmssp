@@ -5,6 +5,7 @@
 #include <stack>
 #include <algorithm>
 #include <cmath>
+#include <unordered_set>
 
 namespace CaminhoMinimo {
     std::pair<std::vector<size_t>, std::vector<size_t>> Algoritmo::findPivots(double limiteB, std::vector<size_t> fronteiraInicialS)
@@ -244,6 +245,7 @@ namespace CaminhoMinimo {
         }
 
         std::vector<size_t> verticesResolvidosU;
+        std::unordered_set<size_t> setControleDuplicatas;
 
         double Bfinal = limiteSuperiorGlobalB;
         double limite = maxContagemK * pow(2, nivel * passosT);
@@ -270,7 +272,12 @@ namespace CaminhoMinimo {
 
             Bfinal = limiteAlcancadoRecursao;
 
-            verticesResolvidosU.insert(verticesResolvidosU.end(), verticesResolvidosLote.begin(), verticesResolvidosLote.end());
+            for (size_t v : verticesResolvidosLote) {
+                if (setControleDuplicatas.find(v) == setControleDuplicatas.end()) {
+                    verticesResolvidosU.push_back(v);
+                    setControleDuplicatas.insert(v);
+                }
+            }
 
             std::vector<ParDistVertice> loteTemporarioK;
 
@@ -299,11 +306,21 @@ namespace CaminhoMinimo {
             estruturaD.batchPrepend(loteTemporarioK);
             limiteInferiorAnterior = limiteAlcancadoRecursao;
         }
+        // --- CÓDIGO NOVO PARA O FINAL DA FUNÇÃO ---
+
+        // Não precisamos declarar 'jaProcessados' nem recriá-lo.
+        // Usamos o 'setControleDuplicatas' que mantivemos atualizado durante o while.
+
         for (size_t vertice : verticesAlcancadosW) {
             if (distD[vertice] < Bfinal) {
-                verticesResolvidosU.push_back(vertice);
+                // Verifica se já processamos usando o set principal
+                if (setControleDuplicatas.find(vertice) == setControleDuplicatas.end()) {
+                    verticesResolvidosU.push_back(vertice);
+                    setControleDuplicatas.insert(vertice); // Mantém atualizado
+                }
             }
         }
+
         return std::make_pair(Bfinal, verticesResolvidosU);
     }
 }

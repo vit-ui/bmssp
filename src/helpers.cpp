@@ -7,6 +7,7 @@
 #include <random>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 /**
  * SOLVER (ORÁCULO)

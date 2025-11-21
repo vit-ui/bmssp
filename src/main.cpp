@@ -18,19 +18,19 @@ struct InfoErro {
 
 int main() {
     // Parâmetros iniciais
-    int tamanho = 3;   // Começando pequeno para testar
+    int tamanho = 100;   // Começando pequeno para testar
     int origem = 0;     // Vértice de partida
-    double densidade = 0.5;
-    int quantidade = 50; // Numero de grafos criados e testados
+    double densidade = 0.1;
+    int quantidade = 1000; // Numero de grafos criados e testados
 
     // a cada stepMudanca Grafos, o tamanho aumenta em stepTamanho
-    int stepMudanca = 5;
-    int stepTamanho = 2;
+    int stepMudanca = 30;
+    int stepTamanho = 1;
     std::string caminhoGrafo = "grafos.txt";;
 
     // Instancia o Solucionador
     // (Requer construtor vazio: Algoritmo() : ptrGrafo(nullptr) {})
-    CaminhoMinimo::Algoritmo algos;
+
 
     // Limpa o arquivo de log antes de começar (opcional)
     std::ofstream cleaner(caminhoGrafo);
@@ -56,6 +56,7 @@ int main() {
         salvaGrafo(tamanho, densidade, grafo, caminhoGrafo);
 
         // 3. CONFIGURAÇÃO
+        CaminhoMinimo::Algoritmo algos;
         algos.setGrafo(grafo);
 
         // -------------------------------------------------
