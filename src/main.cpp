@@ -20,12 +20,12 @@ int main() {
     // Parâmetros iniciais
     int tamanho = 100;   // Começando pequeno para testar
     int origem = 0;     // Vértice de partida
-    double densidade = 0.1;
-    int quantidade = 1000; // Numero de grafos criados e testados
+    double densidade = 0.9;
+    int quantidade = 3000; // Numero de grafos criados e testados
 
     // a cada stepMudanca Grafos, o tamanho aumenta em stepTamanho
     int stepMudanca = 30;
-    int stepTamanho = 1;
+    int stepTamanho = 5;
     std::string caminhoGrafo = "grafos.txt";;
 
     // Instancia o Solucionador
@@ -53,7 +53,7 @@ int main() {
         auto grafo = geraGrafo(tamanho, densidade);
 
         // 2. REGISTRO (Opcional)
-        salvaGrafo(tamanho, densidade, grafo, caminhoGrafo);
+        //salvaGrafo(tamanho, densidade, grafo, caminhoGrafo);
 
         // 3. CONFIGURAÇÃO
         CaminhoMinimo::Algoritmo algos;

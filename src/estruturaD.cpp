@@ -1,4 +1,5 @@
-#include "../headers/estruturaD.hpp"
+Ôªø#include "../headers/estruturaD.hpp"
+
 #include <vector>
 #include <list>
 #include <map>
@@ -14,40 +15,35 @@
 
 // Construtor
 D::D(size_t M, double B) : tamLoteM(M), limiteSuperiorB(B) {
-    // Inicializa D_1 com um bloco vazio e o limite B
+    // Inicializa D_1 com um bloco vazio e com limite B
     blocosD_1.push_back(Bloco());
     const auto& i = blocosD_1.begin();
     limites[B] = i;
 }
 
-// INSERT: Insere um ˙nico elemento
+// Insert a key/value pair in amortized O(max{1, log(N/M)}) time. 
+// If the key already exists, update its value.
 void D::insert(size_t vertice, double distancia) {
     auto iStatus = status.find(vertice);
 
+    // Se achar o vertice e se nova dist√¢ncia √© pior ou igual, ignora
     if (iStatus != status.end()) {
-        // Se nova dist‚ncia È pior ou igual, ignora
-        if (iStatus->second <= distancia) return;
-
-        // Se È melhor, remove a antiga antes de inserir a nova
+        if (iStatus->second <= distancia)
+            return;
+        // Se existir, remove a antiga antes de inserir a nova
         removeChave(vertice);
     }
 
     // Encontra o bloco correto em D_1
     auto iLimites = limites.lower_bound(distancia);
 
-    // SeguranÁa para erros numÈricos
-    if (iLimites == limites.end()) {
-        if (!limites.empty()) iLimites = std::prev(limites.end());
-        else return;
-    }
-
-    auto iBloco = iLimites->second;
-    iBloco->push_back({ distancia, vertice });
+    //auto iBloco = /*iLimites->second;*/
+    iLimites->second->push_back({ distancia, vertice });
 
     status[vertice] = distancia;
 
     // Se o bloco estourou o tamanho M, divide ele
-    if (iBloco->size() > tamLoteM) dividir(iLimites);
+    if (iLimites->second->size() > tamLoteM) dividir(iLimites);
 }
 
 // BATCH PREPEND: Insere lote urgente
@@ -69,7 +65,7 @@ void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
         }
     }
 
-    // 2. Compara com status global e marca remoÁıes
+    // 2. Compara com status global e marca remo√ß√µes
     auto it = loteFiltrado.begin();
     while (it != loteFiltrado.end()) {
         size_t vertice = it->first;
@@ -91,7 +87,7 @@ void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
         ++it;
     }
 
-    // Remove as versıes antigas de D (garante consistÍncia)
+    // Remove as vers√µes antigas de D (garante consist√™ncia)
     for (size_t v : paraRemoverDoStatus) {
         removeChave(v);
     }
@@ -103,7 +99,7 @@ void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
         aux.push_back({ par.second, par.first });
         status[par.first] = par.second; // Atualiza status global
     }
-    std::sort(aux.begin(), aux.end()); // Menores dist‚ncias primeiro
+    std::sort(aux.begin(), aux.end()); // Menores dist√¢ncias primeiro
 
     // 4. Insere em D_0
     if (aux.size() <= tamLoteM) {
@@ -112,7 +108,7 @@ void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
         blocosD_0.push_front(bloco);
     }
     else {
-        // Se o lote È maior que M, quebramos em v·rios blocos inserindo de tr·s pra frente
+        // Se o lote √© maior que M, quebramos em v√°rios blocos inserindo de tr√°s pra frente
         size_t resto = aux.size() % tamLoteM;
         size_t inicioUltimo = (resto == 0) ? (aux.size() - tamLoteM) : (aux.size() - resto);
 
@@ -133,7 +129,7 @@ std::pair<double, std::vector<ParDistVertice>> D::pull() {
     std::vector<ParDistVertice> candidatosD_1;
     std::vector<ParDistVertice> candidatosTotais;
 
-    // Coleta sempre um a mais para saber se h· excedente
+    // Coleta sempre um a mais para saber se h√° excedente
     size_t limiteVerificacao = tamLoteM + 1;
 
     // 1. Coleta de D_0
@@ -160,14 +156,14 @@ std::pair<double, std::vector<ParDistVertice>> D::pull() {
     double novoLimiteBi;
     std::vector<ParDistVertice> loteDeRetornoSi;
 
-    // 3. LÛgica Unificada: Sempre particiona e remove individualmente
+    // 3. L√≥gica Unificada: Sempre particiona e remove individualmente
     if (candidatosTotais.empty()) {
         return std::make_pair(limiteSuperiorB, std::vector<ParDistVertice>{});
     }
 
     if (candidatosTotais.size() <= tamLoteM) {
         // Caso A: Temos menos ou igual a M elementos. Retornamos TUDO o que achamos.
-        // O limite vira o limite superior da estrutura, pois esgotamos os candidatos visÌveis
+        // O limite vira o limite superior da estrutura, pois esgotamos os candidatos vis√≠veis
         novoLimiteBi = limiteSuperiorB;
         loteDeRetornoSi = candidatosTotais;
     }
@@ -190,7 +186,7 @@ std::pair<double, std::vector<ParDistVertice>> D::pull() {
         }
     }
 
-    // 4. REMO«√O SEGURA: Removemos APENAS os itens que vamos retornar.
+    // 4. REMO√á√ÉO SEGURA: Removemos APENAS os itens que vamos retornar.
     for (auto& par : loteDeRetornoSi) {
         removeChave(par.second);
     }
@@ -228,7 +224,7 @@ void D::removeChave(size_t vertice) {
         }
     }
 
-    // 2. SE N√O ACHOU EM D_1, PROCURA EM D_0
+    // 2. SE N√ÉO ACHOU EM D_1, PROCURA EM D_0
     if (!encontrado) {
         for (auto itBloco = blocosD_0.begin(); itBloco != blocosD_0.end(); /*nada*/) {
             bool apagouDoBloco = false;
@@ -267,35 +263,37 @@ void D::dividir(std::map<double, std::list<Bloco>::iterator>::iterator& iLimites
 
     std::vector<ParDistVertice> aux(iBloco->begin(), iBloco->end());
 
+    // First, we identify the median element within the block in O(M) time[BFP + 73], 
+    // partitioning the elements into two new blocks each with at most ‚åàM / 2‚åâ elements.
+    // elements smaller than the median are placed in the first block, while the rest 
+    // are placed in the second.
     std::nth_element(aux.begin(), aux.begin() + tamLoteM / 2, aux.end());
     double valorMediana = aux[tamLoteM / 2].first;
 
-    Bloco bloco1;
+    // Criamos APENAS o bloco 2 para onde moveremos os elementos MAIORES
     Bloco bloco2;
 
-    for (const auto& par : aux) {
-        if (par.first <= valorMediana) bloco1.push_back(par);
-        else bloco2.push_back(par);
-    }
-
-    *iBloco = bloco1;
-    auto iBloco2 = blocosD_1.insert(std::next(iBloco), bloco2);
-
-    limites.erase(iLimites);
-
-    // Calcula o m·ximo real do bloco 1
-    double maxBloco1 = 0.0;
-    if (!bloco1.empty()) {
-        maxBloco1 = bloco1.front().first;
-        for (const auto& p : bloco1) {
-            if (p.first > maxBloco1) maxBloco1 = p.first;
+    // 2. Iterar sobre os elementos (agora ordenados por valor) e parti-los
+    //    (O(M) de list::iterator traversal)
+    auto it = iBloco->begin();
+    while (it != iBloco->end()) {
+        if (it->first > valorMediana) {
+            // Se for MAIOR, move o N√ì para bloco2. splice √© O(1)
+            bloco2.splice(bloco2.end(), *iBloco, it++);
         }
-    }
-    else {
-        maxBloco1 = valorMediana;
+        else ++it;
     }
 
-    limites[maxBloco1] = iBloco;
-    limites[limiteAntigo] = iBloco2;
+    // 4. Inserir bloco2
+    auto iBloco2 = blocosD_1.insert(std::next(iBloco), std::move(bloco2));
+
+    double maxBloco1 = valorMediana;
+
+    // 1. Apaga o limite antigo. Isto √© O(log N) ou O(1) se usar o iterador.
+    // O iterador iLimites n√£o √© mais v√°lido ap√≥s o erase.
+    auto next_it = limites.erase(iLimites);
+
+    limites.insert(next_it, { maxBloco1, iBloco });
+    limites.insert(next_it, { limiteAntigo, iBloco2 });
 }
 

@@ -22,6 +22,10 @@ namespace CaminhoMinimo {
         std::vector<size_t> verticesAlcancadosWRetorno;
         std::vector<size_t> fronteiraAtualW_prev; // W_i-1. No caso: W_0
 
+        // reserve some space to reduce reallocations
+        verticesAlcancadosWRetorno.reserve(fronteiraInicialS.size() * (maxContagemK > 0 ? maxContagemK : 1));
+        fronteiraAtualW_prev.reserve(fronteiraInicialS.size());
+
         for (size_t vertice : fronteiraInicialS) {
             if (!verticesAlcancadosW[vertice]) {
                 verticesAlcancadosW[vertice] = true;
@@ -36,36 +40,19 @@ namespace CaminhoMinimo {
             //std::set<int> proximaFronteiraW_i;
             std::vector<size_t> proximaFronteiraW_i;
 
+            // reserve based on previous frontier size to reduce growth churn
+            proximaFronteiraW_i.reserve(fronteiraAtualW_prev.size() * 2 + 1);
+
             std::fill(adicionadoNestaCamada.begin(), adicionadoNestaCamada.end(), false);
 
             for (size_t verticeU : fronteiraAtualW_prev) // vertice u da camada anterior
             {
-                for (const auto& aresta : ptrGrafo->at(verticeU)) // vizinho de u(v)
+                const auto& neighbors = ptrGrafo->at(verticeU);
+                for (const auto& aresta : neighbors) // vizinho de u(v)
                 {
                     size_t verticeDestinoV = aresta.first; // v
                     double pesoUV = aresta.second; // peso u -> v
                     double novoCusto = limpaRuido(distD[verticeU] + pesoUV); // distD[u] + peso[u,v]
-
-                    //// Verifica se é MELHOR ou se é um EMPATE SEGURO
-                    //bool melhorou = novoCusto < distD[verticeDestinoV];
-                    //bool empateSeguro = (novoCusto == distD[verticeDestinoV]) && (florestaF[verticeDestinoV] == -1 || camada[verticeDestinoV] == i + 1);
-
-                    //if (melhorou || empateSeguro) {
-                    //    florestaF[verticeDestinoV] = verticeU;
-                    //    camada[verticeDestinoV] = i + 1;
-                    //}
-
-                    //// Atualiza distância e fronteira APENAS se melhorou (Eficiência e Correção)
-                    //if (melhorou) {
-                    //    distD[verticeDestinoV] = novoCusto;
-
-                    //    if (novoCusto < limiteB) {
-                    //        if (!adicionadoNestaCamada[verticeDestinoV]) {
-                    //            adicionadoNestaCamada[verticeDestinoV] = true;
-                    //            proximaFronteiraW_i.push_back(verticeDestinoV);
-                    //        }
-                    //    }
-                    //}
 
                     if (novoCusto <= distD[verticeDestinoV]) // novo menor caminho?
                     {
@@ -143,17 +130,6 @@ namespace CaminhoMinimo {
                 for (int v : filhos[pai]) {
                     pilha.push(v);
                 }
-                //for (const auto& aresta : grafo[pai]) {
-                //    int verticeDestino = aresta.first; // v
-                //    int peso = aresta.second; // peso u -> v
-
-                //    // Testes para garantir que percorremos somente vertices em F
-                //    bool testes = verticesAlcancadosW[verticeDestino] && distD[verticeDestino] == distD[pai] + peso && !visitados.count(verticeDestino);
-                //    if (testes) {
-                //        pilha.push(verticeDestino);
-                //        visitados.insert(verticeDestino);
-                //    }
-                //}
             }
         }
 
@@ -179,7 +155,8 @@ namespace CaminhoMinimo {
 
             verticesCompletosU_0.push_back(verticeAtualU); // cada vertice é adicionado somente uma vez por causa da verificação acima
 
-            for (auto& parVizinho : ptrGrafo->at(verticeAtualU)) {
+            const auto& neighbors = ptrGrafo->at(verticeAtualU);
+            for (const auto& parVizinho : neighbors) {
                 size_t vizinho = parVizinho.first; // vizinho é v - verticeAtualU é u
                 double pesoUV = parVizinho.second; // peso[u, v]
 
@@ -202,6 +179,7 @@ namespace CaminhoMinimo {
 
             // Construindo U para retorno(retirando vertices onde distancia < Blinha
             std::vector<size_t> U;
+            U.reserve(verticesCompletosU_0.size());
             for (size_t vertice : verticesCompletosU_0)
                 if (Blinha > distD[vertice]) U.push_back(vertice);
 
@@ -245,15 +223,23 @@ namespace CaminhoMinimo {
         }
 
         std::vector<size_t> verticesResolvidosU;
-        std::unordered_set<size_t> setControleDuplicatas;
+        // replace unordered_set with a dense boolean vector for faster membership checks
+        std::vector<char> setControleDuplicatas(tamGrafo, 0);
 
         double Bfinal = limiteSuperiorGlobalB;
-        double limite = maxContagemK * pow(2, nivel * passosT);
+        // replace pow with integer shift when safe
+        size_t shift = static_cast<size_t>(nivel) * passosT;
+        double limite;
+        if (shift < (sizeof(unsigned long long) * 8 - 1))
+            limite = static_cast<double>(maxContagemK) * static_cast<double>(1ULL << shift);
+        else
+            limite = static_cast<double>(maxContagemK) * std::pow(2.0, static_cast<double>(shift));
 
         while (verticesResolvidosU.size() < static_cast<size_t>(limite)) {
             auto resultadoPull = estruturaD.pull();
             double limiteSuperiorLoteBi = resultadoPull.first;
-            std::vector<ParDistVertice> paresExtraidosDoPull = resultadoPull.second;
+            // avoid copying the vector if possible
+            std::vector<ParDistVertice> paresExtraidosDoPull = std::move(resultadoPull.second);
 
             if (paresExtraidosDoPull.empty())
             {
@@ -262,6 +248,7 @@ namespace CaminhoMinimo {
             }
 
             std::vector<size_t> pivotsLoteAtual;
+            pivotsLoteAtual.reserve(paresExtraidosDoPull.size());
             for (const auto& par : paresExtraidosDoPull) {
                 pivotsLoteAtual.push_back(par.second);
             }
@@ -273,16 +260,18 @@ namespace CaminhoMinimo {
             Bfinal = limiteAlcancadoRecursao;
 
             for (size_t v : verticesResolvidosLote) {
-                if (setControleDuplicatas.find(v) == setControleDuplicatas.end()) {
+                if (!setControleDuplicatas[v]) {
                     verticesResolvidosU.push_back(v);
-                    setControleDuplicatas.insert(v);
+                    setControleDuplicatas[v] = 1;
                 }
             }
 
             std::vector<ParDistVertice> loteTemporarioK;
+            loteTemporarioK.reserve(verticesResolvidosLote.size() * 2 + pivotsLoteAtual.size());
 
             for (size_t verticeU : verticesResolvidosLote) {
-                for (const auto& aresta : ptrGrafo->at(verticeU)) {
+                const auto& neighbors = ptrGrafo->at(verticeU);
+                for (const auto& aresta : neighbors) {
                     size_t vizinhoV = aresta.first; // v
                     double pesoUV = aresta.second; // peso u -> v
 
@@ -314,9 +303,9 @@ namespace CaminhoMinimo {
         for (size_t vertice : verticesAlcancadosW) {
             if (distD[vertice] < Bfinal) {
                 // Verifica se já processamos usando o set principal
-                if (setControleDuplicatas.find(vertice) == setControleDuplicatas.end()) {
+                if (!setControleDuplicatas[vertice]) {
                     verticesResolvidosU.push_back(vertice);
-                    setControleDuplicatas.insert(vertice); // Mantém atualizado
+                    setControleDuplicatas[vertice] = 1; // Mantém atualizado
                 }
             }
         }
