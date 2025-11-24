@@ -58,8 +58,7 @@ std::pair<std::vector<double>, std::vector<size_t>> bellmanFord(const CaminhoMin
 }
 
 // Função que gera um grafo para teste usando lista de adjacencia.
-CaminhoMinimo::Grafo geraGrafo(size_t tamanho, double densidade)
-{
+CaminhoMinimo::Grafo geraGrafo(size_t tamanho, double densidade) {
     // Criando um gerador de numeros aleatórios usando static para persistir durante várias calls a função
     static std::random_device semente;
     static std::mt19937 motor(semente());

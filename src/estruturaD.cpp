@@ -11,6 +11,7 @@
 #include <functional>
 #include <cassert>
 #include <algorithm>
+#include <queue>
 
 
 // Construtor
@@ -28,8 +29,7 @@ void D::insert(size_t vertice, double distancia) {
 
     // Se achar o vertice e se nova distância é pior ou igual, ignora
     if (iStatus != status.end()) {
-        if (iStatus->second <= distancia)
-            return;
+        if (iStatus->second.distancia <= distancia) return;
         // Se existir, remove a antiga antes de inserir a nova
         removeChave(vertice);
     }
@@ -40,27 +40,71 @@ void D::insert(size_t vertice, double distancia) {
     //auto iBloco = /*iLimites->second;*/
     iLimites->second->push_back({ distancia, vertice });
 
-    status[vertice] = distancia;
+    status.insert_or_assign(vertice, Status{distancia, std::prev(iLimites->second->end()), iLimites->second, true });
 
     // Se o bloco estourou o tamanho M, divide ele
     if (iLimites->second->size() > tamLoteM) dividir(iLimites);
 }
 
+// Esta função é chamada internamente por D::batchPrepend
+// Processa o range [inicio, fim) do vetor 'lotes'
+void D::dividirLote(std::vector<ParDistVertice>& lotes, size_t inicio, size_t fim) {
+    size_t tamanho = fim - inicio;
+
+    // A. Condição de Parada (O(M log M))
+    if (tamanho <= tamLoteM) {
+        // 1. ORDENAÇÃO LOCAL (CORREÇÃO SEMÂNTICA)
+        std::sort(lotes.begin() + inicio, lotes.begin() + fim);
+
+        // 2. CRIA E INSERE O BLOCO
+        std::list<ParDistVertice> bloco(lotes.begin() + inicio, lotes.begin() + fim);
+        
+        // Captura o iterador do bloco recém-inserido
+        auto iBloco = blocosD_0.insert(blocosD_0.begin(), std::move(bloco));
+
+        // Iteração O(M) para atualizar o status para cada elemento do novo bloco
+        for (auto iElem = iBloco->begin(); iElem != iBloco->end(); ++iElem) {
+            status.insert_or_assign(
+                iElem->second,
+                Status{
+                    iElem->first, // distancia
+                    iElem,        // iElem (Iterador do elemento)
+                    iBloco,       // iBloco (Iterador do bloco)
+                    false         // pertenceD1 é FALSE (está em D0)
+                }
+            );
+        }
+        return;
+    }
+
+    // B. Encontra Mediana e Particiona (O(tamanho))
+    size_t indiceMediana = inicio + tamanho / 2;
+
+    auto inicio_it = std::next(lotes.begin(), inicio);
+    auto mediana_it = std::next(lotes.begin(), indiceMediana);
+    auto fim_it = std::next(lotes.begin(), fim);
+
+    std::nth_element(inicio_it, mediana_it, fim_it);
+
+    // C. Chamadas Recursivas para garantir a ordem de inserção (Maior antes do Menor)
+
+    // 1. Bloco 2: Elementos MAIORES ou IGUAIS (Maior limite superior)
+    // Chamamos o Bloco 2 primeiro para que ele seja inserido na frente de D0.
+    dividirLote(lotes, indiceMediana, fim);
+
+    // 2. Bloco 1: Elementos MENORES
+    dividirLote(lotes, inicio, indiceMediana);
+}
+
 // BATCH PREPEND: Insere lote urgente
 void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
-    std::map<size_t, double> loteFiltrado;
+    std::unordered_map<size_t, double> loteFiltrado;
     std::vector<size_t> paraRemoverDoStatus;
 
     // 1. Filtra o melhor dentro do lote (resolve duplicatas no input)
-    for (auto& par : loteL) {
-        double distancia = par.first;
-        size_t vertice = par.second;
-
+    for (auto& [distancia, vertice] : loteL) {
         auto iLote = loteFiltrado.find(vertice);
-        if (iLote == loteFiltrado.end()) {
-            loteFiltrado[vertice] = distancia;
-        }
-        else if (distancia < loteFiltrado[vertice]) {
+        if (iLote == loteFiltrado.end() || distancia < loteFiltrado[vertice]) {
             loteFiltrado[vertice] = distancia;
         }
     }
@@ -73,7 +117,7 @@ void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
 
         auto iStatus = status.find(vertice);
         if (iStatus != status.end()) {
-            double distanciaAntiga = iStatus->second;
+            double distanciaAntiga = iStatus->second.distancia;
             // Se o caminho novo for pior ou igual, descartamos do lote
             if (distancia >= distanciaAntiga) {
                 it = loteFiltrado.erase(it);
@@ -88,24 +132,35 @@ void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
     }
 
     // Remove as versões antigas de D (garante consistência)
-    for (size_t v : paraRemoverDoStatus) {
-        removeChave(v);
-    }
+    for (size_t v : paraRemoverDoStatus) removeChave(v);
 
     // 3. Copia para vetor e ORDENA
     std::vector<ParDistVertice> aux;
     aux.reserve(loteFiltrado.size());
-    for (auto& par : loteFiltrado) {
-        aux.push_back({ par.second, par.first });
-        status[par.first] = par.second; // Atualiza status global
+    for (auto& [vertice, distancia] : loteFiltrado) {
+        aux.push_back({ distancia, vertice });
+        //status.insert_or_assign(vertice, Status(distancia)); // Atualiza status global
     }
-    std::sort(aux.begin(), aux.end()); // Menores distâncias primeiro
+    //std::sort(aux.begin(), aux.end()); // Menores distâncias primeiro
 
+#if 0
+// ... Dentro de D::batchPrepend, após o Passo 3:
+    if (!aux.empty()) {
+        // A função é chamada uma vez no vetor auxiliar
+        dividirLote(aux, 0, aux.size());
+    }
+#else
+    std::sort(aux.begin(), aux.end()); // Menores distâncias primeiro
     // 4. Insere em D_0
     if (aux.size() <= tamLoteM) {
-        std::list<ParDistVertice> bloco;
-        for (const auto& p : aux) bloco.push_back(p);
-        blocosD_0.push_front(bloco);
+        std::list<ParDistVertice> bloco(aux.begin(), aux.end());
+        //for (const auto& p : aux) bloco.push_back(p);
+        auto iBloco = blocosD_0.insert(blocosD_0.begin(), std::move(bloco));
+
+        // 2. Itera sobre o novo bloco para atualizar o Status
+        for (auto iElem = iBloco->begin(); iElem != iBloco->end(); ++iElem) {
+            status.insert_or_assign(iElem->second, Status{ iElem->first, iElem, iBloco,false });
+        }
     }
     else {
         // Se o lote é maior que M, quebramos em vários blocos inserindo de trás pra frente
@@ -113,15 +168,21 @@ void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
         size_t inicioUltimo = (resto == 0) ? (aux.size() - tamLoteM) : (aux.size() - resto);
 
         for (long long i = inicioUltimo; i >= 0; i -= tamLoteM) {
-            std::list<ParDistVertice> bloco;
-            size_t fim = std::min((size_t)i + tamLoteM, aux.size());
+            std::list<ParDistVertice> bloco(aux.begin() + i, aux.begin() + std::min((size_t)i + tamLoteM, aux.size()));
+ /*           size_t fim = std::min((size_t)i + tamLoteM, aux.size());
 
             for (size_t j = (size_t)i; j < fim; j++) {
                 bloco.push_back(aux[j]);
+            }*/
+            auto iBloco = blocosD_0.insert(blocosD_0.begin(), std::move(bloco));
+
+            // 3. Itera sobre o novo bloco para atualizar o Status
+            for (auto iElem = iBloco->begin(); iElem != iBloco->end(); ++iElem) {
+                status.insert_or_assign(iElem->second, Status{ iElem->first, iElem, iBloco, false });
             }
-            blocosD_0.push_front(bloco);
         }
     }
+#endif
 }
 
 std::pair<double, std::vector<ParDistVertice>> D::pull() {
@@ -199,65 +260,101 @@ void D::removeChave(size_t vertice) {
     auto iStatus = status.find(vertice);
     if (iStatus == status.end()) return;
 
-    double distancia = iStatus->second;
+    auto& dadosStatus = iStatus->second;
+    auto iElem = dadosStatus.iElem;       // Iterador do elemento na lista
+    auto iBloco = dadosStatus.iBloco;     // Iterador do bloco na lista de blocos
+    bool pertenceD1 = dadosStatus.pertenceD1;
 
-    // 1. Tenta remover de D_1
-    auto iLimites = limites.lower_bound(distancia);
-    bool encontrado = false;
+    iBloco->erase(iElem);
 
-    if (iLimites != limites.end()) {
-        auto iBloco = iLimites->second;
-        for (auto valor = iBloco->begin(); valor != iBloco->end(); /*nada*/) {
-            if (valor->second == vertice) {
-                valor = iBloco->erase(valor);
-                encontrado = true;
+    // 3. Lógica de Remoção de Bloco Vazio (O(1) ou O(log(N/M)))
+    if (iBloco->empty()) {
 
-                if (iBloco->empty() && iLimites->first != limiteSuperiorB) {
-                    blocosD_1.erase(iBloco);
-                    limites.erase(iLimites);
-                }
-                break;
+        if (pertenceD1) {
+            // Remove o bloco de D_1
+            // A remoção do bloco D_1 e do limite (O(log N/M)) é a parte logarítmica,
+            // que é aceitável, pois só ocorre quando um bloco fica vazio.
+
+            // Reconstituindo o iLimites a partir de iBloco (O(log N/M) na BST limites)
+            // Se o limite não fosse B (limite superior da estrutura)
+            auto iLimites = limites.lower_bound(dadosStatus.distancia);
+            // **Nota:** A busca por iLimites aqui é O(log N/M) e é o custo dominante
+            // na remoção de blocos vazios, mas é aceito pela definição teórica.
+
+            if (iLimites->first != limiteSuperiorB) {
+                blocosD_1.erase(iBloco);
+                limites.erase(iLimites);
             }
-            else {
-                ++valor;
-            }
+        }
+        else {
+            // Remove o bloco de D_0 (O(1) se blocosD_0 for std::list)
+            blocosD_0.erase(iBloco);
         }
     }
 
-    // 2. SE NÃO ACHOU EM D_1, PROCURA EM D_0
-    if (!encontrado) {
-        for (auto itBloco = blocosD_0.begin(); itBloco != blocosD_0.end(); /*nada*/) {
-            bool apagouDoBloco = false;
-            for (auto valor = itBloco->begin(); valor != itBloco->end(); /*nada*/) {
-                if (valor->second == vertice) {
-                    valor = itBloco->erase(valor);
-                    encontrado = true;
-                    apagouDoBloco = true;
-                    break;
-                }
-                else {
-                    ++valor;
-                }
-            }
+    // 4. Remoção do Status (O(1) em Média)
+    status.erase(iStatus);
+    //double distancia = iStatus->second.distancia;
 
-            if (itBloco->empty()) {
-                itBloco = blocosD_0.erase(itBloco);
-            }
-            else {
-                ++itBloco;
-            }
+    //// 1. Tenta remover de D_1
+    //auto iLimites = limites.lower_bound(distancia);
+    //bool encontrado = false;
 
-            if (encontrado) break;
-        }
-    }
+    //if (iLimites != limites.end()) {
+    //    auto iBloco = iLimites->second;
+    //    auto valor = iBloco->begin();
+    //    while(valor != iBloco->end()) {
+    //        if (valor->second == vertice) {
+    //            valor = iBloco->erase(valor);
+    //            encontrado = true;
 
-    if (encontrado) {
-        status.erase(iStatus);
-    }
+    //            if (iBloco->empty() && iLimites->first != limiteSuperiorB) {
+    //                blocosD_1.erase(iBloco);
+    //                limites.erase(iLimites);
+    //            }
+    //            break;
+    //        }
+    //        else {
+    //            ++valor;
+    //        }
+    //    }
+    //}
+
+    //// 2. SE NÃO ACHOU EM D_1, PROCURA EM D_0
+    //if (!encontrado) {
+    //    for (auto itBloco = blocosD_0.begin(); itBloco != blocosD_0.end(); /*nada*/) {
+    //        bool apagouDoBloco = false;
+    //        for (auto valor = itBloco->begin(); valor != itBloco->end(); /*nada*/) {
+    //            if (valor->second == vertice) {
+    //                valor = itBloco->erase(valor);
+    //                encontrado = true;
+    //                apagouDoBloco = true;
+    //                break;
+    //            }
+    //            else {
+    //                ++valor;
+    //            }
+    //        }
+
+    //        if (itBloco->empty()) {
+    //            itBloco = blocosD_0.erase(itBloco);
+    //        }
+    //        else {
+    //            ++itBloco;
+    //        }
+
+    //        if (encontrado) break;
+    //    }
+    //}
+
+    //if (encontrado) {
+    //    status.erase(iStatus);
+    //}
 }
 
 // DIVIDIR
 void D::dividir(std::map<double, std::list<Bloco>::iterator>::iterator& iLimites) {
+    int size = limites.size();
     double limiteAntigo = iLimites->first;
     auto iBloco = iLimites->second;
 
@@ -286,6 +383,15 @@ void D::dividir(std::map<double, std::list<Bloco>::iterator>::iterator& iLimites
 
     // 4. Inserir bloco2
     auto iBloco2 = blocosD_1.insert(std::next(iBloco), std::move(bloco2));
+
+    for (auto iElem = iBloco2->begin(); iElem != iBloco2->end(); ++iElem) {
+        // O vértice é o segundo elemento do ParDistVertice
+        size_t vertice = iElem->second;
+
+        // Atualiza a localização do bloco em O(1) médio
+        // Note que pertenceD1 já é TRUE aqui.
+        status[vertice].iBloco = iBloco2;
+    }
 
     double maxBloco1 = valorMediana;
 
