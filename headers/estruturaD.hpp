@@ -1,4 +1,6 @@
 #pragma once
+//#define O1
+//#define RANGE
 
 #include <vector>
 #include <list>
@@ -10,12 +12,14 @@
 using ParDistVertice = std::pair<double, size_t>; // (distancia, vertice)
 using Bloco = std::list<ParDistVertice>; 
 
+#ifdef O1
 struct Status {
 	double distancia;
 	std::list<ParDistVertice>::iterator iElem;
 	std::list<Bloco>::iterator iBloco;
 	bool pertenceD1;
 };
+#endif
 
 class D {
 public:
@@ -36,5 +40,9 @@ private:
 	std::list<Bloco> blocosD_1;
 
 	std::map<double, std::list<Bloco>::iterator> limites;
+#ifdef O1
 	std::unordered_map<size_t, Status> status;
+#else
+	std::unordered_map<size_t, double> status;
+#endif
 };
