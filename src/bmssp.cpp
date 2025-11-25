@@ -18,7 +18,7 @@ namespace CaminhoMinimo {
         }
 
         // Bellman-Ford
-        std::vector<bool> verticesAlcancadosW(tamGrafo, false); // W
+        std::vector<char> verticesAlcancadosW(tamGrafo, false); // W
         std::vector<size_t> verticesAlcancadosWRetorno;
         std::vector<size_t> fronteiraAtualW_prev; // W_i-1. No caso: W_0
 

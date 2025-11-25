@@ -43,6 +43,7 @@ int main() {
     std::cout << "       BENCHMARK: DIJKSTRA vs BMSSP     " << std::endl;
     std::cout << "========================================" << std::endl;
 
+    size_t microB = 0, microD = 0;
     for (int i = 0; i < quantidade; i++) {
         // Aumenta o tamanho do grafo a cada stepMudanca iterações
         if (i % stepMudanca == 0) tamanho += stepTamanho;
@@ -64,7 +65,7 @@ int main() {
         // -------------------------------------------------
         long long tempoDijkstra = algos.execDijkstra(origem);
         std::vector<double> resultadoDijkstra = algos.getDist();
-
+        microD += tempoDijkstra;
         std::cout << "Tempo Dijkstra: " << tempoDijkstra << " micros" << std::endl;
 
         // -------------------------------------------------
@@ -72,7 +73,7 @@ int main() {
         // -------------------------------------------------
         long long tempoBMSSP = algos.execBmssp(origem);
         const std::vector<double>& resultadoBMSSP = algos.getDist();
-
+        microB += tempoBMSSP;
         std::cout << "Tempo BMSSP:    " << tempoBMSSP << " micros" << std::endl;
 
         // -------------------------------------------------
@@ -87,9 +88,6 @@ int main() {
         bool iguais = true;
         // Compara valor a valor (usando margem de erro pequena para double se necessário)
         for (size_t v = 0; v < resultadoDijkstra.size(); ++v) {
-            // Usando comparação com precisão de double
-            // Se quiser usar epsilon: std::abs(a - b) > 1e-9
-            // Se usar a limpeza de ruído na classe, == deve funcionar na maioria dos casos simples
             if (resultadoDijkstra[v] != resultadoBMSSP[v]) {
                 iguais = false;
 
@@ -135,6 +133,10 @@ int main() {
             std::cout << std::endl;
         }
     }
+    std::cout << "\n\n========================================" << std::endl;
+    std::cout << "   MEDIA DE TEMPO GASTO DIJKSTRA: " << microD / quantidade << std::endl;
+    std::cout << "   MEDIA DE TEMPO GASTO BMSSP:    " << microB / quantidade << std::endl;
+    std::cout << "========================================" << std::endl;
 
     // --- RELATÓRIO FINAL DE ERROS ---
     std::cout << "\n\n========================================" << std::endl;
