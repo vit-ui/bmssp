@@ -1,5 +1,7 @@
 #pragma once
 
+//#define LIMPARUIDO
+
 #include <vector>
 #include <queue>
 #include <cmath>
@@ -12,11 +14,13 @@ namespace CaminhoMinimo {
 
 	constexpr double PESOMAX = 100.0;
 
+#ifdef LIMPARUIDO
 	// função que garante precisão quando fazemos operações com pontos flutuantes
 	static double limpaRuido(double valor) {
 		constexpr double PRECISAO = 1e9;
 		return std::round(valor * PRECISAO) / PRECISAO;
 	}
+#endif
 
 	class Algoritmo {
 	public:

@@ -1,6 +1,7 @@
 #include "../headers/algoritmo.hpp"
 #include "../headers/estruturaD.hpp"
 
+#define FINDPIVOTS
 #include <vector>
 #include <stack>
 #include <algorithm>
@@ -8,6 +9,7 @@
 #include <unordered_set>
 
 namespace CaminhoMinimo {
+#ifndef FINDPIVOTS
     std::pair<std::vector<size_t>, std::vector<size_t>> Algoritmo::findPivots(double limiteB, std::vector<size_t> fronteiraInicialS)
     {
         std::vector<size_t> florestaF(tamGrafo, NULO);
@@ -23,37 +25,40 @@ namespace CaminhoMinimo {
         std::vector<size_t> fronteiraAtualW_prev; // W_i-1. No caso: W_0
 
         // reserve some space to reduce reallocations
-        verticesAlcancadosWRetorno.reserve(fronteiraInicialS.size() * (maxContagemK > 0 ? maxContagemK : 1));
-        fronteiraAtualW_prev.reserve(fronteiraInicialS.size());
-
+        //verticesAlcancadosWRetorno.reserve(fronteiraInicialS.size() * (maxContagemK > 0 ? maxContagemK : 1));
+        //fronteiraAtualW_prev.reserve(fronteiraInicialS.size());
+        fronteiraAtualW_prev = fronteiraInicialS;
+        verticesAlcancadosWRetorno = fronteiraInicialS;
         for (size_t vertice : fronteiraInicialS) {
-            if (!verticesAlcancadosW[vertice]) {
+            //if (!verticesAlcancadosW[vertice]) {
                 verticesAlcancadosW[vertice] = true;
-                verticesAlcancadosWRetorno.push_back(vertice);
-                fronteiraAtualW_prev.push_back(vertice);
-            }
+                //verticesAlcancadosWRetorno.push_back(vertice);
+                //fronteiraAtualW_prev.push_back(vertice);
+            //}
         }
 
-        std::vector<bool> adicionadoNestaCamada(tamGrafo, false); // para manter a ordem em que os vetores foram encontrados
+        std::vector<size_t> proximaFronteiraW_i;
+        // reserve based on previous frontier size to reduce growth churn
+        proximaFronteiraW_i.reserve(fronteiraAtualW_prev.size() * 2 + 1);
+
+        std::vector<char> adicionadoNestaCamada(tamGrafo, false); // para manter a ordem em que os vetores foram encontrados
         for (size_t i = 0; i < maxContagemK; i++) // no algo: i = 1 até k.
         {
-            //std::set<int> proximaFronteiraW_i;
-            std::vector<size_t> proximaFronteiraW_i;
-
-            // reserve based on previous frontier size to reduce growth churn
-            proximaFronteiraW_i.reserve(fronteiraAtualW_prev.size() * 2 + 1);
-
+            proximaFronteiraW_i.clear();
             std::fill(adicionadoNestaCamada.begin(), adicionadoNestaCamada.end(), false);
 
             for (size_t verticeU : fronteiraAtualW_prev) // vertice u da camada anterior
             {
-                const auto& neighbors = ptrGrafo->at(verticeU);
-                for (const auto& aresta : neighbors) // vizinho de u(v)
+                const auto& vizinhos = ptrGrafo->at(verticeU);
+                for (const auto& [verticeDestinoV, pesoUV] : vizinhos) // vizinho de u(v)
                 {
-                    size_t verticeDestinoV = aresta.first; // v
-                    double pesoUV = aresta.second; // peso u -> v
+                    //size_t verticeDestinoV = aresta.first; // v
+                    //double pesoUV = aresta.second; // peso u -> v
+#ifdef LIMPARUIDO
                     double novoCusto = limpaRuido(distD[verticeU] + pesoUV); // distD[u] + peso[u,v]
-
+#else
+                    double novoCusto = distD[verticeU] + pesoUV; // distD[u] + peso[u,v]
+#endif
                     if (novoCusto <= distD[verticeDestinoV]) // novo menor caminho?
                     {
                         if (novoCusto < limiteB) { // B é limite de distancia(janela que me importo)
@@ -95,20 +100,20 @@ namespace CaminhoMinimo {
         std::vector<std::vector<size_t>> filhos(tamGrafo);
 
         for (size_t vertice : verticesAlcancadosWRetorno) {
-            if (florestaF[vertice] != -1) {
+            if (florestaF[vertice] != NULO) {
                 filhos[florestaF[vertice]].push_back(vertice);
             }
         }
 
         // Construção de P
-        std::vector<bool> pivots(tamGrafo, false);
+        std::vector<char> pivots(tamGrafo, false);
         std::vector<size_t> pivotsRetorno;
 
         for (size_t vertice : fronteiraInicialS) {
-            if (!verticesAlcancadosW[vertice] || florestaF[vertice] != -1) continue;
+            if (!verticesAlcancadosW[vertice] || florestaF[vertice] != NULO) continue;
 
             // Usando um DFS para percorrer F e achar os pivots.
-            int contador = 0;
+            size_t contador = 0;
             //std::set<int> visitados;
             std::stack<size_t> pilha;
 
@@ -116,7 +121,7 @@ namespace CaminhoMinimo {
             //visitados.insert(vertice);
 
             while (!pilha.empty()) {
-                int pai = pilha.top();
+                size_t pai = pilha.top();
                 pilha.pop();
                 contador++;
 
@@ -127,7 +132,7 @@ namespace CaminhoMinimo {
                     }
                     break;
                 }
-                for (int v : filhos[pai]) {
+                for (size_t v : filhos[pai]) {
                     pilha.push(v);
                 }
             }
@@ -135,7 +140,7 @@ namespace CaminhoMinimo {
 
         return std::make_pair(pivotsRetorno, verticesAlcancadosWRetorno);
     }
-
+#endif
     // mini-Dijkstra modificado
     std::pair<double, std::vector<size_t>> Algoritmo::baseCase(double limiteB, size_t pivoFonteS) {
         std::vector<size_t> verticesCompletosU_0; // a primeira iteração do while adiciona pivoFonteS
@@ -155,12 +160,15 @@ namespace CaminhoMinimo {
 
             verticesCompletosU_0.push_back(verticeAtualU); // cada vertice é adicionado somente uma vez por causa da verificação acima
 
-            const auto& neighbors = ptrGrafo->at(verticeAtualU);
-            for (const auto& parVizinho : neighbors) {
+            const auto& vizinhos = ptrGrafo->at(verticeAtualU);
+            for (const auto& parVizinho : vizinhos) {
                 size_t vizinho = parVizinho.first; // vizinho é v - verticeAtualU é u
                 double pesoUV = parVizinho.second; // peso[u, v]
-
+#ifdef LIMPARUIDO
                 double novoCusto = limpaRuido(distD[verticeAtualU] + pesoUV);
+#else
+                double novoCusto = distD[verticeAtualU] + pesoUV;
+#endif
                 if (novoCusto <= distD[vizinho] && novoCusto < limiteB) {
                     distD[vizinho] = novoCusto;
 
@@ -192,11 +200,142 @@ namespace CaminhoMinimo {
         if (nivel == 0) { // S é um singleton(único elemento)
             return baseCase(limiteSuperiorGlobalB, fronteiraS[0]);
         }
+#ifdef FINDPIVOTS
+        // VARIÁVEIS DE SAÍDA DE findPivots
+        std::vector<size_t> pivotsP;
+        std::vector<size_t> verticesAlcancadosW; // W final
 
+        // ===============================================
+        //              INICIO FINDPIVOTS
+        // ===============================================
+            std::vector<size_t> florestaF(tamGrafo, NULO);
+            std::vector<size_t> camada(tamGrafo, NULO);
+            std::vector<char> verticesAlcancadosW_Flag(tamGrafo, false); // W
+
+            for (size_t vertice : fronteiraS)  {
+                camada[vertice] = 0;
+                verticesAlcancadosW_Flag[vertice] = true;
+            }
+            // Bellman-Ford
+            std::vector<size_t> fronteiraAtualW_prev = fronteiraS;
+            verticesAlcancadosW = fronteiraS;
+
+            std::vector<size_t> proximaFronteiraW_i;
+            // reserve based on previous frontier size to reduce growth churn
+            proximaFronteiraW_i.reserve(fronteiraAtualW_prev.size() * 2 + 1);
+
+            std::vector<char> adicionadoNestaCamada(tamGrafo, false); // para manter a ordem em que os vetores foram encontrados
+            do
+            {
+                for (size_t i = 0; i < maxContagemK; i++) // no algo: i = 1 até k.
+                {
+                    proximaFronteiraW_i.clear();
+                    std::fill(adicionadoNestaCamada.begin(), adicionadoNestaCamada.end(), false);
+
+                    for (size_t verticeU : fronteiraAtualW_prev) // vertice u da camada anterior
+                    {
+                        const auto& vizinhos = ptrGrafo->at(verticeU);
+                        for (const auto& [verticeDestinoV, pesoUV] : vizinhos) // vizinho de u(v)
+                        {
+#ifdef LIMPARUIDO
+                            double novoCusto = limpaRuido(distD[verticeU] + pesoUV); // distD[u] + peso[u,v]
+#else
+                            double novoCusto = distD[verticeU] + pesoUV; // distD[u] + peso[u,v]
+#endif
+                            if (novoCusto <= distD[verticeDestinoV]) // novo menor caminho?
+                            {
+                                if (novoCusto < limiteSuperiorGlobalB) { // B é limite de distancia(janela que me importo)
+                                    // W_i U {v}
+                                    if (!adicionadoNestaCamada[verticeDestinoV]) {
+                                        adicionadoNestaCamada[verticeDestinoV] = true;
+                                        proximaFronteiraW_i.push_back(verticeDestinoV);
+                                    }
+                                    // já que tem que pertencer a W:
+                                    bool melhorou = novoCusto < distD[verticeDestinoV];
+                                    bool empateSeguro = (novoCusto == distD[verticeDestinoV]) && (florestaF[verticeDestinoV] == NULO || camada[verticeDestinoV] == i + 1);
+
+                                    if (melhorou || empateSeguro) {
+                                        florestaF[verticeDestinoV] = verticeU;
+                                        camada[verticeDestinoV] = i + 1;
+                                    }
+                                }
+
+                                // Importante ser a última coisa a ser feita!
+                                distD[verticeDestinoV] = novoCusto; // Atualiza menor distancia
+                            }
+                        }
+                    }
+                    fronteiraAtualW_prev.clear();
+                    // faz W U W_i
+                    for (size_t vertice : proximaFronteiraW_i) {
+                        if (!verticesAlcancadosW_Flag[vertice]) {
+                            verticesAlcancadosW_Flag[vertice] = true;
+                            verticesAlcancadosW.push_back(vertice);
+                        }
+                        // precisamos fazer a fronteira atual ir para a anterior. W_i-1 = W_i implicito no artigo.
+                        //fronteiraAtualW_prev.push_back(vertice); 
+                    }
+                    fronteiraAtualW_prev.swap(proximaFronteiraW_i);
+                    proximaFronteiraW_i.clear();
+
+                    if (verticesAlcancadosW.size() > maxContagemK * fronteiraS.size())
+                    {
+                        pivotsP = fronteiraS;
+                        break;
+                    }
+                }
+                // Construção de F: vetor florestaF já satisfaz as condições para pertencer a F. F == florestaF.
+                // filhos servem para construir P
+                std::vector<std::vector<size_t>> filhos(tamGrafo);
+
+                for (size_t vertice : verticesAlcancadosW) {
+                    if (florestaF[vertice] != NULO) {
+                        filhos[florestaF[vertice]].push_back(vertice);
+                    }
+                }
+
+                // Construção de P
+                std::vector<char> pivots_Flag(tamGrafo, false);
+
+                for (size_t vertice : fronteiraS) {
+                    if (!verticesAlcancadosW_Flag[vertice] || florestaF[vertice] != NULO) continue;
+
+                    // Usando um DFS para percorrer F e achar os pivots.
+                    size_t contador = 0;
+                    //std::set<int> visitados;
+                    std::stack<size_t> pilha;
+
+                    pilha.push(vertice);
+                    //visitados.insert(vertice);
+
+                    while (!pilha.empty()) {
+                        size_t pai = pilha.top();
+                        pilha.pop();
+                        contador++;
+
+                        if (contador >= maxContagemK) {
+                            if (!pivots_Flag[vertice]) {
+                                pivots_Flag[vertice] = true;
+                                pivotsP.push_back(vertice);
+                            }
+                            break;
+                        }
+                        for (size_t v : filhos[pai]) {
+                            pilha.push(v);
+                        }
+                    }
+                }
+
+                //return std::make_pair(pivotsRetorno, verticesAlcancadosWRetorno);
+            } while (false);
+            // ===============================================
+            //                 FIM FINDPIVOTS
+            // ===============================================
+#else
         auto resultadoPivots = findPivots(limiteSuperiorGlobalB, fronteiraS);
-
         std::vector<size_t> pivotsP = resultadoPivots.first;
         std::vector<size_t> verticesAlcancadosW = resultadoPivots.second;
+#endif
 
         //size_t tamLoteM = size_t(std::pow(2, (nivel - 1) * passosT));
 
@@ -270,13 +409,15 @@ namespace CaminhoMinimo {
             loteTemporarioK.reserve(verticesResolvidosLote.size() * 2 + pivotsLoteAtual.size());
 
             for (size_t verticeU : verticesResolvidosLote) {
-                const auto& neighbors = ptrGrafo->at(verticeU);
-                for (const auto& aresta : neighbors) {
+                const auto& vizinhos = ptrGrafo->at(verticeU);
+                for (const auto& aresta : vizinhos) {
                     size_t vizinhoV = aresta.first; // v
                     double pesoUV = aresta.second; // peso u -> v
-
+#ifdef LIMPARUIDO
                     double novoCusto = limpaRuido(distD[verticeU] + pesoUV);
-
+#else
+                    double novoCusto = distD[verticeU] + pesoUV;
+#endif
                     if (novoCusto <= distD[vizinhoV]) {
                         distD[vizinhoV] = novoCusto;
                         if ((novoCusto >= limiteSuperiorLoteBi && novoCusto < limiteSuperiorGlobalB))

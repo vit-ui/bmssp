@@ -24,7 +24,11 @@ namespace CaminhoMinimo {
                 double peso = parVizinho.second;
 
                 // linha 14 era redundante. Pulei direto para 15.
+#ifdef LIMPARUIDO
                 double distanciaNova = limpaRuido(distD[verticeAtual] + peso);
+#else
+                double distanciaNova = distD[verticeAtual] + peso;
+#endif
                 if (distanciaNova < distD[vizinho]) {
                     distD[vizinho] = distanciaNova;
                     predecessores[vizinho] = verticeAtual;

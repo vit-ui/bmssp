@@ -21,11 +21,11 @@ int main() {
     int tamanho = 100;   // Começando pequeno para testar
     int origem = 0;     // Vértice de partida
     double densidade = 0.9;
-    int quantidade = 3000; // Numero de grafos criados e testados
+    int quantidade = 5000; // Numero de grafos criados e testados
 
     // a cada stepMudanca Grafos, o tamanho aumenta em stepTamanho
-    int stepMudanca = 30;
-    int stepTamanho = 5;
+    int stepMudanca = 50;
+    int stepTamanho = 50;
     std::string caminhoGrafo = "grafos.txt";;
 
     // Instancia o Solucionador
@@ -44,6 +44,7 @@ int main() {
     std::cout << "========================================" << std::endl;
 
     size_t microB = 0, microD = 0;
+    CaminhoMinimo::Algoritmo algos;
     for (int i = 0; i < quantidade; i++) {
         // Aumenta o tamanho do grafo a cada stepMudanca iterações
         if (i % stepMudanca == 0) tamanho += stepTamanho;
@@ -57,7 +58,7 @@ int main() {
         //salvaGrafo(tamanho, densidade, grafo, caminhoGrafo);
 
         // 3. CONFIGURAÇÃO
-        CaminhoMinimo::Algoritmo algos;
+
         algos.setGrafo(grafo);
 
         // -------------------------------------------------
@@ -136,6 +137,7 @@ int main() {
     std::cout << "\n\n========================================" << std::endl;
     std::cout << "   MEDIA DE TEMPO GASTO DIJKSTRA: " << microD / quantidade << std::endl;
     std::cout << "   MEDIA DE TEMPO GASTO BMSSP:    " << microB / quantidade << std::endl;
+    std::cout << "   RATIO:                         " << static_cast<int>((microD / quantidade) - (microB / quantidade)) << std::endl;
     std::cout << "========================================" << std::endl;
 
     // --- RELATÓRIO FINAL DE ERROS ---

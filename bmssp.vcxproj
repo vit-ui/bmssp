@@ -133,7 +133,7 @@
     <ClCompile Include="src\dijsktra.cpp" />
     <ClCompile Include="src\estruturaD.cpp" />
     <ClCompile Include="src\helpers.cpp" />
-    <ClCompile Include="src\Teste.cpp" />
+    <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="headers\helpers.hpp" />

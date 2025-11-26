@@ -1,6 +1,6 @@
 #pragma once
-//#define O1
-//#define RANGE
+#define O1
+#define RANGE
 
 #include <vector>
 #include <list>
