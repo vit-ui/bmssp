@@ -20,11 +20,11 @@ int main() {
     // Parâmetros iniciais
     int tamanho = 100;   // Começando pequeno para testar
     int origem = 0;     // Vértice de partida
-    double densidade = 0.9;
+    double densidade = 0.5;
     int quantidade = 5000; // Numero de grafos criados e testados
 
     // a cada stepMudanca Grafos, o tamanho aumenta em stepTamanho
-    int stepMudanca = 50;
+    int stepMudanca = 200;
     int stepTamanho = 50;
     std::string caminhoGrafo = "grafos.txt";;
 
@@ -57,10 +57,12 @@ int main() {
         // 2. REGISTRO (Opcional)
         //salvaGrafo(tamanho, densidade, grafo, caminhoGrafo);
 
-        // 3. CONFIGURAÇÃO
-
         algos.setGrafo(grafo);
 
+        long long tempoBMSSP = algos.execBmssp(origem);
+        const std::vector<double>& resultadoBMSSP = algos.getDist();
+        microB += tempoBMSSP;
+        std::cout << "Tempo BMSSP:    " << tempoBMSSP << " micros" << std::endl;
         // -------------------------------------------------
         // 4. EXECUÇÃO DO DIJKSTRA (Baseline)
         // -------------------------------------------------
@@ -72,10 +74,7 @@ int main() {
         // -------------------------------------------------
         // 5. EXECUÇÃO DO BMSSP (Algoritmo Novo)
         // -------------------------------------------------
-        long long tempoBMSSP = algos.execBmssp(origem);
-        const std::vector<double>& resultadoBMSSP = algos.getDist();
-        microB += tempoBMSSP;
-        std::cout << "Tempo BMSSP:    " << tempoBMSSP << " micros" << std::endl;
+
 
         // -------------------------------------------------
         // 6. VALIDAÇÃO E COMPARAÇÃO

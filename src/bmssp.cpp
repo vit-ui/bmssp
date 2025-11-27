@@ -205,9 +205,9 @@ namespace CaminhoMinimo {
         std::vector<size_t> pivotsP;
         std::vector<size_t> verticesAlcancadosW; // W final
 
-        // ===============================================
-        //              INICIO FINDPIVOTS
-        // ===============================================
+// ===============================================
+//              INICIO FINDPIVOTS
+// ===============================================
             std::vector<size_t> florestaF(tamGrafo, NULO);
             std::vector<size_t> camada(tamGrafo, NULO);
             std::vector<char> verticesAlcancadosW_Flag(tamGrafo, false); // W
@@ -328,9 +328,9 @@ namespace CaminhoMinimo {
 
                 //return std::make_pair(pivotsRetorno, verticesAlcancadosWRetorno);
             } while (false);
-            // ===============================================
-            //                 FIM FINDPIVOTS
-            // ===============================================
+// ===============================================
+//                 FIM FINDPIVOTS
+// ===============================================
 #else
         auto resultadoPivots = findPivots(limiteSuperiorGlobalB, fronteiraS);
         std::vector<size_t> pivotsP = resultadoPivots.first;
@@ -338,7 +338,6 @@ namespace CaminhoMinimo {
 #endif
 
         //size_t tamLoteM = size_t(std::pow(2, (nivel - 1) * passosT));
-
         size_t tamLoteM = 1ULL << ((static_cast<size_t>(nivel) - 1) * passosT); // evita mexer com ponto flutuante. ULL = unsigned long long
 
         D estruturaD(tamLoteM, limiteSuperiorGlobalB);
@@ -436,10 +435,6 @@ namespace CaminhoMinimo {
             estruturaD.batchPrepend(loteTemporarioK);
             limiteInferiorAnterior = limiteAlcancadoRecursao;
         }
-        // --- CÓDIGO NOVO PARA O FINAL DA FUNÇÃO ---
-
-        // Não precisamos declarar 'jaProcessados' nem recriá-lo.
-        // Usamos o 'setControleDuplicatas' que mantivemos atualizado durante o while.
 
         for (size_t vertice : verticesAlcancadosW) {
             if (distD[vertice] < Bfinal) {
