@@ -6,8 +6,9 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <iomanip> // Necessário para formatar a densidade no nome do arquivo se desejar precisão
 
-// Estrutura para guardar informações sobre os erros encontrados
+// Estrutura para guardar informações sobre os erros encontrados (mantida para verificação)
 struct InfoErro {
     int idTeste;
     int tamanhoGrafo;
@@ -18,145 +19,82 @@ struct InfoErro {
 
 int main() {
     // Parâmetros iniciais
-    int tamanho = 100;   // Começando pequeno para testar
-    int origem = 0;     // Vértice de partida
+    int tamanho = 100;
+    int origem = 0;
     double densidade = 0.5;
-    int quantidade = 5000; // Numero de grafos criados e testados
+    int quantidade = 5000;
 
-    // a cada stepMudanca Grafos, o tamanho aumenta em stepTamanho
     int stepMudanca = 200;
     int stepTamanho = 50;
-    std::string caminhoGrafo = "grafos.txt";;
 
-    // Instancia o Solucionador
-    // (Requer construtor vazio: Algoritmo() : ptrGrafo(nullptr) {})
+    // --- CONFIGURAÇÃO DO CSV ---
+    // Cria o nome do arquivo: "densidade_0.200000.csv"
+    std::string nomeArquivoCsv = "densidade_" + std::to_string(densidade) + ".csv";
 
+    // Abre o arquivo para escrita
+    std::ofstream arquivoCsv(nomeArquivoCsv);
 
-    // Limpa o arquivo de log antes de começar (opcional)
-    std::ofstream cleaner(caminhoGrafo);
-    cleaner.close();
+    // Escreve o cabeçalho das colunas
+    arquivoCsv << "N_Teste,N_Vertices,Tempo_Dijkstra_micros,Tempo_BMSSP_micros\n";
 
-    // Vetor para acumular os erros
+    // Feedback visual para saber que iniciou
+    std::cout << "Iniciando Benchmark..." << std::endl;
+    std::cout << "Gerando saida em: " << nomeArquivoCsv << std::endl;
+
     std::vector<InfoErro> errosEncontrados;
+    CaminhoMinimo::Algoritmo algos; // Instancia o Solucionador
 
-    std::cout << "========================================" << std::endl;
-    std::cout << "       BENCHMARK: DIJKSTRA vs BMSSP     " << std::endl;
-    std::cout << "========================================" << std::endl;
-
-    size_t microB = 0, microD = 0;
-    CaminhoMinimo::Algoritmo algos;
     for (int i = 0; i < quantidade; i++) {
         // Aumenta o tamanho do grafo a cada stepMudanca iterações
-        if (i % stepMudanca == 0) tamanho += stepTamanho;
+        if (i > 0 && i % stepMudanca == 0) tamanho += stepTamanho;
 
-        std::cout << "\n--- Teste " << i << " (Vertices: " << tamanho << ") ---" << std::endl;
+        // Feedback de progresso no console (opcional, para não parecer travado)
+        if (i % 100 == 0) std::cout << "Processando teste " << i << "/" << quantidade << " (N=" << tamanho << ")..." << std::endl;
 
         // 1. GERAÇÃO DO GRAFO
         auto grafo = geraGrafo(tamanho, densidade);
-
-        // 2. REGISTRO (Opcional)
-        //salvaGrafo(tamanho, densidade, grafo, caminhoGrafo);
-
         algos.setGrafo(grafo);
 
+        // 2. EXECUÇÃO DO BMSSP
         long long tempoBMSSP = algos.execBmssp(origem);
         const std::vector<double>& resultadoBMSSP = algos.getDist();
-        microB += tempoBMSSP;
-        std::cout << "Tempo BMSSP:    " << tempoBMSSP << " micros" << std::endl;
-        // -------------------------------------------------
-        // 4. EXECUÇÃO DO DIJKSTRA (Baseline)
-        // -------------------------------------------------
+
+        // 3. EXECUÇÃO DO DIJKSTRA
         long long tempoDijkstra = algos.execDijkstra(origem);
         std::vector<double> resultadoDijkstra = algos.getDist();
-        microD += tempoDijkstra;
-        std::cout << "Tempo Dijkstra: " << tempoDijkstra << " micros" << std::endl;
 
-        // -------------------------------------------------
-        // 5. EXECUÇÃO DO BMSSP (Algoritmo Novo)
-        // -------------------------------------------------
+        // 4. ESCRITA NO CSV (Teste, Vertices, Dijkstra, BMSSP)
+        arquivoCsv << i << "," << tamanho << "," << tempoDijkstra << "," << tempoBMSSP << "\n";
 
-
-        // -------------------------------------------------
-        // 6. VALIDAÇÃO E COMPARAÇÃO
-        // -------------------------------------------------
-
+        // 5. VALIDAÇÃO (Mantida a lógica de erro, mas sem spammar o console)
         if (resultadoDijkstra.size() != resultadoBMSSP.size()) {
-            std::cout << "[ERRO CRITICO] Vetores de tamanhos diferentes!" << std::endl;
+            std::cerr << "[ERRO CRITICO] Tamanhos diferentes no teste " << i << std::endl;
             continue;
         }
 
-        bool iguais = true;
-        // Compara valor a valor (usando margem de erro pequena para double se necessário)
         for (size_t v = 0; v < resultadoDijkstra.size(); ++v) {
+            // Verifica divergência
             if (resultadoDijkstra[v] != resultadoBMSSP[v]) {
-                iguais = false;
-
-                // Imprime o erro na hora
-                std::cout << "[DIVERGENCIA] Vertice " << v
-                    << " -> Dijk: " << resultadoDijkstra[v]
-                    << " | BMSSP: " << resultadoBMSSP[v] << std::endl;
-
-                // GUARDA O ERRO PARA O RELATÓRIO FINAL
                 errosEncontrados.push_back({ i, tamanho, v, resultadoDijkstra[v], resultadoBMSSP[v] });
-
-                break; // Para na primeira divergência encontrada neste grafo
+                // Mensagem de erro no console é importante manter
+                std::cerr << "[DIVERGENCIA] Teste " << i << " Vertice " << v << std::endl;
+                break;
             }
-        }
-
-        if (iguais) {
-            std::cout << "[SUCESSO] Resultados identicos." << std::endl;
-
-            // Comparação de Performance
-            if (tempoBMSSP < tempoDijkstra)
-                std::cout << ">> BMSSP foi mais rapido!" << std::endl;
-            else
-                std::cout << ">> Dijkstra foi mais rapido." << std::endl;
-        }
-        else {
-            std::cout << "[FALHA] Os algoritmos deram resultados diferentes." << std::endl;
-        }
-
-        // (Opcional) Imprime distâncias para grafos pequenos
-        if (tamanho <= 20) {
-            std::cout << "Distancias(Dijks): ";
-            for (const auto& d : resultadoDijkstra) {
-                if (d == CaminhoMinimo::Algoritmo::INFINITO) std::cout << "INF ";
-                else std::cout << d << " ";
-            }
-            std::cout << std::endl;
-
-            std::cout << "Distancias(BMSSP): ";
-            for (const auto& d : resultadoBMSSP) {
-                if (d == CaminhoMinimo::Algoritmo::INFINITO) std::cout << "INF ";
-                else std::cout << d << " ";
-            }
-            std::cout << std::endl;
         }
     }
-    std::cout << "\n\n========================================" << std::endl;
-    std::cout << "   MEDIA DE TEMPO GASTO DIJKSTRA: " << microD / quantidade << std::endl;
-    std::cout << "   MEDIA DE TEMPO GASTO BMSSP:    " << microB / quantidade << std::endl;
-    std::cout << "   RATIO:                         " << static_cast<int>((microD / quantidade) - (microB / quantidade)) << std::endl;
-    std::cout << "========================================" << std::endl;
 
-    // --- RELATÓRIO FINAL DE ERROS ---
-    std::cout << "\n\n========================================" << std::endl;
-    std::cout << "       RESUMO DAS DIVERGENCIAS          " << std::endl;
-    std::cout << "========================================" << std::endl;
+    // Fecha o arquivo CSV ao final
+    arquivoCsv.close();
 
-    if (errosEncontrados.empty()) {
-        std::cout << "PARABENS! Todos os " << quantidade << " testes passaram sem divergencias." << std::endl;
+    std::cout << "\nBenchmark finalizado." << std::endl;
+
+    // Relatório final de erros no console
+    if (!errosEncontrados.empty()) {
+        std::cout << "Foram encontradas " << errosEncontrados.size() << " divergencias." << std::endl;
     }
     else {
-        std::cout << "Foram encontradas " << errosEncontrados.size() << " divergencias:\n" << std::endl;
-        for (const auto& erro : errosEncontrados) {
-            std::cout << "--- Teste " << erro.idTeste << " (N=" << erro.tamanhoGrafo << ") ---" << std::endl;
-            std::cout << "[DIVERGENCIA] Vertice " << erro.verticeDivergente
-                << " -> Dijk: " << erro.valorDijkstra
-                << " | BMSSP: " << erro.valorBMSSP << std::endl;
-            std::cout << "----------------------------------------" << std::endl;
-        }
+        std::cout << "Sucesso! Nenhuma divergencia encontrada entre os algoritmos." << std::endl;
     }
 
-    //imprimeArquivo(caminhoGrafo);
+    return 0;
 }
