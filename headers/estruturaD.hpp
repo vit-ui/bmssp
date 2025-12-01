@@ -1,6 +1,5 @@
 #pragma once
 //#define O1
-//#define RANGE
 
 #include <vector>
 #include <list>
@@ -32,7 +31,7 @@ public:
 private:
 	void removeChave(size_t vertice);
 	void dividir(std::map<double, std::list<Bloco>::iterator>::iterator &iLimites);
-	void dividirLote(std::vector<ParDistVertice>& lotes, size_t inicio, size_t fim);
+	//void dividirLote(std::vector<ParDistVertice>& lotes, size_t inicio, size_t fim);
 private:
 	size_t tamLoteM;
 	double limiteSuperiorB;

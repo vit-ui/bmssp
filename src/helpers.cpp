@@ -15,6 +15,7 @@
  * Este algoritmo é mais lento (O(N*E)), mas sua lógica simples
  * serve como uma "prova" para validar seu Dijkstra otimizado.
  */
+// USADO EM TESTES INICIAIS
 std::pair<std::vector<double>, std::vector<size_t>> bellmanFord(const CaminhoMinimo::Grafo& grafo) {
 
     // (Pode ser 'int' ou 'size_t', desde que seja consistente)
@@ -74,11 +75,8 @@ CaminhoMinimo::Grafo geraGrafo(size_t tamanho, double densidade) {
     for (size_t i = 0; i < maxArestas; i++){
         size_t origem = escolheVertice(motor);
         size_t chegada = escolheVertice(motor);
-#ifdef LIMPARUIDO
-        double peso = CaminhoMinimo::limpaRuido(escolhePeso(motor));
-#else
+
         double peso = escolhePeso(motor);
-#endif
         if (origem == chegada) continue;
 
         // --- A NOVA LÓGICA DE VERIFICAÇÃO ---

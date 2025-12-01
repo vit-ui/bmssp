@@ -52,57 +52,6 @@ void D::insert(size_t vertice, double distancia) {
     if (iLimites->second->size() > tamLoteM) dividir(iLimites);
 }
 
-// Esta função é chamada internamente por D::batchPrepend
-// Processa o range [inicio, fim) do vetor 'lotes'
-void D::dividirLote(std::vector<ParDistVertice>& lotes, size_t inicio, size_t fim) {
-    size_t tamanho = fim - inicio;
-
-    // A. Condição de Parada (O(M log M))
-    if (tamanho <= tamLoteM) {
-        // 1. ORDENAÇÃO LOCAL (CORREÇÃO SEMÂNTICA)
-        std::sort(lotes.begin() + inicio, lotes.begin() + fim);
-
-        // 2. CRIA E INSERE O BLOCO
-        std::list<ParDistVertice> bloco(lotes.begin() + inicio, lotes.begin() + fim);
-        
-        // Captura o iterador do bloco recém-inserido
-        auto iBloco = blocosD_0.insert(blocosD_0.begin(), std::move(bloco));
-#ifdef O1
-        // Iteração O(M) para atualizar o status para cada elemento do novo bloco
-        for (auto iElem = iBloco->begin(); iElem != iBloco->end(); ++iElem) {
-            status.insert_or_assign(
-                iElem->second,
-                Status{
-                    iElem->first, // distancia
-                    iElem,        // iElem (Iterador do elemento)
-                    iBloco,       // iBloco (Iterador do bloco)
-                    false         // pertenceD1 é FALSE (está em D0)
-                }
-            );
-        }
-#endif
-        return;
-    }
-
-    // B. Encontra Mediana e Particiona (O(tamanho))
-    size_t indiceMediana = inicio + tamanho / 2;
-
-    auto inicio_it = std::next(lotes.begin(), inicio);
-    auto mediana_it = std::next(lotes.begin(), indiceMediana);
-    auto fim_it = std::next(lotes.begin(), fim);
-
-    std::nth_element(inicio_it, mediana_it, fim_it);
-
-    // C. Chamadas Recursivas para garantir a ordem de inserção (Maior antes do Menor)
-
-    // 1. Bloco 2: Elementos MAIORES ou IGUAIS (Maior limite superior)
-    // Chamamos o Bloco 2 primeiro para que ele seja inserido na frente de D0.
-    dividirLote(lotes, indiceMediana, fim);
-
-    // 2. Bloco 1: Elementos MENORES
-    dividirLote(lotes, inicio, indiceMediana);
-}
-
 // BATCH PREPEND: Insere lote urgente
 void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
     std::unordered_map<size_t, double> loteFiltrado;
@@ -154,62 +103,6 @@ void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
         //status.insert_or_assign(vertice, Status(distancia)); // Atualiza status global
     }
 
-#ifdef RANGE
-    struct Range { size_t inicio, fim; };
-    std::vector<Range> stack;
-    stack.reserve(64); // ajuste conforme necessário
-
-    stack.push_back({ 0, aux.size() });
-
-    while (!stack.empty()) {
-        Range r = stack.back();
-        stack.pop_back();
-
-        size_t tamanho = r.fim - r.inicio;
-        if (tamanho == 0) continue;
-
-        if (tamanho <= tamLoteM) {
-            // 1) ordenação local
-            std::sort(aux.begin() + r.inicio, aux.begin() + r.fim);
-
-            // 2) cria e insere o bloco na frente de blocosD_0
-            std::list<ParDistVertice> bloco(aux.begin() + r.inicio, aux.begin() + r.fim);
-            auto iBloco = blocosD_0.insert(blocosD_0.begin(), std::move(bloco));
-
-            // 3) atualiza status para cada elemento do novo bloco
-            for (auto iElem = iBloco->begin(); iElem != iBloco->end(); ++iElem) {
-#ifdef O1
-                status.insert_or_assign(
-                    iElem->second,
-                    Status{
-                        iElem->first,
-                        iElem,   // iterador do elemento no bloco
-                        iBloco,  // iterador do bloco em blocosD_0
-                        false    // pertenceD1 = false (está em D0)
-                    }
-                );
-#else
-                status.insert_or_assign(iElem->second, iElem->first);
-#endif
-            }
-        }
-        else
-        {
-            // Particiona para encontrar a mediana aproximada
-            size_t indiceMediana = r.inicio + tamanho / 2;
-            auto inicio_it = std::next(aux.begin(), r.inicio);
-            auto mediana_it = std::next(aux.begin(), indiceMediana);
-            auto fim_it = std::next(aux.begin(), r.fim);
-
-            std::nth_element(inicio_it, mediana_it, fim_it);
-
-            // Empilha ESQUERDA primeiro e DIREITA depois para que a DIREITA
-            // seja processada primeiro (LIFO) — preserva a ordem do recursivo.
-            stack.push_back({ r.inicio, indiceMediana });   // menores
-            stack.push_back({ indiceMediana, r.fim });      // maiores ou iguais
-        }
-    }
-#else
     std::sort(aux.begin(), aux.end()); // Menores distâncias primeiro
     // 4. Insere em D_0
     if (aux.size() <= tamLoteM) {
@@ -250,7 +143,6 @@ void D::batchPrepend(std::vector<ParDistVertice>& loteL) {
             }
         }
     }
-#endif
 }
 
 std::pair<double, std::vector<ParDistVertice>> D::pull() {
