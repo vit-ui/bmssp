@@ -2,9 +2,15 @@
 .vs/
 *.exe
 *.txt
-!src/geraGrafosTestes.exe
 *.json
 /src/NewFile.cpp
 bmssp*
 x64/
 /src/Teste.cpp
+densidade*
+.vs/
+bin/
+obj/
+*.user
+grafos/
+bmssp/
